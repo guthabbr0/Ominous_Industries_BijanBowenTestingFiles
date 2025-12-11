@@ -629,8 +629,8 @@ color: #3D3936;        /* Dark brown text */
 background: #FDF8F3;   /* Light cream background */
 
 /* ❌ Poor contrast */
-color: #E8A87C;        /* Light coral text */
-background: #FDF8F3;   /* Similar light background */
+color: #B0B0B0;        /* Light gray text */
+background: #FDF8F3;   /* Light cream background */
 ```
 
 ---
