@@ -74,7 +74,8 @@ XSS attacks inject malicious scripts into web pages. This is critical for HTML c
 document.innerHTML = userInput;
 element.innerHTML = folder + "/" + file;
 
-// ❌ NEVER do this
+// ❌ NEVER do this – this is an example of what NOT to do!
+// Using template literals with untrusted input in a template context is unsafe and can lead to XSS vulnerabilities.
 var data = ${JSON.stringify(userInput)};  // In template
 ```
 
@@ -229,7 +230,9 @@ Currently, this repository has no npm/pip dependencies, which is a security adva
 npm audit
 
 # For Python projects
-pip audit
+# Note: pip-audit is a separate package that needs to be installed first
+# Install with: pip install pip-audit
+pip-audit
 
 # For general scanning
 snyk test
