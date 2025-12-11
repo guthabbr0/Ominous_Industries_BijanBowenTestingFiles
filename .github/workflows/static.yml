@@ -414,7 +414,7 @@ jobs:
                               const encodedFolder = encodeURIComponent(folder);
                               const encodedFile = encodeURIComponent(file);
                               return `
-                                  <a href="${encodedFolder}/${encodedFile}" class="file-item" data-file="${escapeHtml(file.toLowerCase())}">
+                                  <a href="/static/${encodedFolder}/${encodedFile}" class="file-item" data-file="${escapeHtml(file.toLowerCase())}">
                                       <span class="file-icon">${getFileIcon(file)}</span>
                                       <span class="file-name">${escapeHtml(file)}</span>
                                       <span class="file-ext">${getFileExtDisplay(file)}</span>
