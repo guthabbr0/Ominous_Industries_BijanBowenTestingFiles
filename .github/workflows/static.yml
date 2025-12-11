@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Generate Index HTML
         run: |
-          cat > static/index.html << 'HTMLEOF'
+          cat > index.html << 'HTMLEOF'
           <!DOCTYPE html>
           <html lang="en">
           <head>
@@ -42,14 +42,14 @@ jobs:
               <title>Index of Static Files - Ominous Industries</title>
               <style>
                   :root {
-                      --primary-color: #6366f1;
-                      --primary-hover: #4f46e5;
-                      --bg-color: #0f172a;
-                      --card-bg: #1e293b;
-                      --text-color: #e2e8f0;
-                      --text-muted: #94a3b8;
-                      --border-color: #334155;
-                      --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+                      --primary-color: #E07B39;
+                      --primary-hover: #C2703F;
+                      --bg-color: #FDF8F3;
+                      --card-bg: #FBF4ED;
+                      --text-color: #3D3936;
+                      --text-muted: #8B7D73;
+                      --border-color: #F2E4D9;
+                      --accent-gradient: linear-gradient(135deg, #E07B39 0%, #E8A87C 100%);
                   }
                   
                   * {
@@ -78,7 +78,8 @@ jobs:
                       padding: 2rem;
                       background: var(--accent-gradient);
                       border-radius: 16px;
-                      box-shadow: 0 20px 40px rgba(99, 102, 241, 0.3);
+                      box-shadow: 0 20px 40px rgba(224, 123, 57, 0.3);
+                      color: white;
                   }
                   
                   h1 {
@@ -120,7 +121,7 @@ jobs:
                   .search-box input:focus {
                       outline: none;
                       border-color: var(--primary-color);
-                      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+                      box-shadow: 0 0 0 3px rgba(224, 123, 57, 0.2);
                   }
                   
                   .search-box::before {
@@ -168,7 +169,7 @@ jobs:
                   
                   .folder-card:hover {
                       border-color: var(--primary-color);
-                      box-shadow: 0 10px 30px rgba(99, 102, 241, 0.2);
+                      box-shadow: 0 10px 30px rgba(224, 123, 57, 0.2);
                       transform: translateY(-2px);
                   }
                   
@@ -178,7 +179,7 @@ jobs:
                       display: flex;
                       align-items: center;
                       gap: 1rem;
-                      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+                      background: linear-gradient(135deg, rgba(224, 123, 57, 0.1) 0%, rgba(232, 168, 124, 0.1) 100%);
                       border-bottom: 1px solid var(--border-color);
                   }
                   
@@ -234,7 +235,7 @@ jobs:
                   }
                   
                   .file-item:hover {
-                      background: rgba(99, 102, 241, 0.2);
+                      background: rgba(224, 123, 57, 0.2);
                       transform: translateX(5px);
                   }
                   
@@ -519,12 +520,12 @@ jobs:
           # Escape </ sequence to prevent breaking out of script tag (valid in JSON)
           file_data_json = file_data_json.replace('</', '<\\/')
           
-          with open('index.html', 'r') as f:
+          with open('../index.html', 'r') as f:
               content = f.read()
           
           content = content.replace('FILE_DATA_PLACEHOLDER', file_data_json)
           
-          with open('index.html', 'w') as f:
+          with open('../index.html', 'w') as f:
               f.write(content)
           PYTHONEOF
           cd ..
