@@ -1,0 +1,5263 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-wallpaper="aurora">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="color-scheme" content="dark light" />
+  <title>NebulaOS</title>
+  <style>
+    :root{
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      --accent: #7c5cff;
+      --accent2: #2dd4bf;
+
+      --bg: #0b0e14;
+      --bg2: #07090e;
+
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.72);
+      --faint: rgba(255,255,255,.50);
+
+      --panel: rgba(18, 20, 30, .62);
+      --panel2: rgba(255,255,255,.08);
+      --panel3: rgba(255,255,255,.12);
+
+      --stroke: rgba(255,255,255,.14);
+      --stroke2: rgba(255,255,255,.20);
+
+      --shadow: 0 24px 70px rgba(0,0,0,.55);
+      --shadow2: 0 10px 24px rgba(0,0,0,.36);
+
+      --radius: 16px;
+      --radius2: 12px;
+
+      --blur: 18px;
+      --taskbar-h: 56px;
+
+      --win-min-w: 280px;
+      --win-min-h: 180px;
+
+      --ease: cubic-bezier(.2,.9,.2,1);
+      --ease2: cubic-bezier(.2,1,.2,1);
+
+      --motion: 1;
+      --pad: 10px;
+    }
+
+    html[data-theme="light"]{
+      --bg: #eef2ff;
+      --bg2: #e7eafc;
+
+      --text: rgba(10,12,18,.92);
+      --muted: rgba(10,12,18,.72);
+      --faint: rgba(10,12,18,.52);
+
+      --panel: rgba(255,255,255,.68);
+      --panel2: rgba(0,0,0,.06);
+      --panel3: rgba(0,0,0,.08);
+
+      --stroke: rgba(0,0,0,.14);
+      --stroke2: rgba(0,0,0,.18);
+
+      --shadow: 0 24px 70px rgba(0,0,0,.18);
+      --shadow2: 0 10px 24px rgba(0,0,0,.14);
+    }
+
+    body[data-reduce-motion="true"]{
+      --motion: 0;
+      --ease: linear;
+      --ease2: linear;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      overflow:hidden;
+      user-select:none;
+    }
+
+    ::selection{ background: color-mix(in oklab, var(--accent) 30%, transparent); }
+
+    /* Boot */
+    #boot{
+      position:fixed; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      background:
+        radial-gradient(900px 600px at 20% 10%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 55%),
+        radial-gradient(700px 500px at 90% 20%, color-mix(in oklab, var(--accent2) 18%, transparent), transparent 60%),
+        radial-gradient(1200px 800px at 40% 120%, rgba(0,0,0,.55), transparent 60%),
+        linear-gradient(180deg, var(--bg2), var(--bg));
+      z-index: 9999;
+    }
+    #boot .boot-card{
+      width:min(520px, calc(100% - 40px));
+      padding: 26px 22px 20px;
+      border-radius: 22px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px) saturate(1.2);
+      -webkit-backdrop-filter: blur(16px) saturate(1.2);
+    }
+    #boot .brand{
+      display:flex; align-items:center; gap:12px;
+      letter-spacing:.2px;
+      font-weight: 750;
+      font-size: 22px;
+    }
+    #boot .brand .orb{
+      width: 34px; height: 34px;
+      border-radius: 999px;
+      background:
+        radial-gradient(14px 14px at 30% 30%, rgba(255,255,255,.85), transparent 65%),
+        radial-gradient(18px 18px at 70% 25%, color-mix(in oklab, var(--accent2) 70%, transparent), transparent 60%),
+        radial-gradient(30px 30px at 55% 65%, color-mix(in oklab, var(--accent) 70%, transparent), transparent 60%),
+        radial-gradient(60px 60px at 55% 65%, rgba(255,255,255,.10), transparent 60%);
+      box-shadow: 0 18px 40px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.10) inset;
+      filter: saturate(1.2);
+    }
+    #boot .sub{
+      margin-top: 10px;
+      color: rgba(255,255,255,.70);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+    #boot .bar{
+      margin-top: 18px;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.10);
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.14);
+    }
+    #boot .bar > i{
+      display:block;
+      height:100%;
+      width: 35%;
+      border-radius: 999px;
+      background:
+        linear-gradient(90deg,
+          color-mix(in oklab, var(--accent) 80%, #fff),
+          color-mix(in oklab, var(--accent2) 75%, #fff)
+        );
+      box-shadow: 0 0 30px color-mix(in oklab, var(--accent) 38%, transparent);
+      animation: bootmove 1200ms var(--ease2) infinite;
+    }
+    @keyframes bootmove{
+      0%{ transform: translateX(-20%); width: 28%; opacity:.85; }
+      40%{ width: 48%; opacity:1; }
+      100%{ transform: translateX(240%); width: 28%; opacity:.85; }
+    }
+
+    /* OS chrome */
+    #os{
+      position:fixed; inset:0;
+    }
+    #os.hidden{ display:none; }
+
+    #wallpaper{
+      position:absolute; inset:0;
+      z-index: 0;
+      background: #0a0d14;
+    }
+
+    /* Wallpaper variants */
+    html[data-wallpaper="aurora"] #wallpaper{
+      background:
+        radial-gradient(900px 640px at 15% 20%, color-mix(in oklab, var(--accent) 30%, transparent), transparent 60%),
+        radial-gradient(900px 640px at 85% 18%, color-mix(in oklab, var(--accent2) 30%, transparent), transparent 62%),
+        radial-gradient(1100px 820px at 55% 110%, rgba(0,0,0,.65), transparent 55%),
+        linear-gradient(180deg, color-mix(in oklab, var(--bg2) 90%, #000), var(--bg));
+    }
+    html[data-wallpaper="midnight"] #wallpaper{
+      background:
+        radial-gradient(900px 600px at 30% 10%, rgba(90,110,255,.25), transparent 58%),
+        radial-gradient(800px 580px at 90% 30%, rgba(20,200,255,.18), transparent 60%),
+        radial-gradient(1200px 900px at 40% 110%, rgba(0,0,0,.7), transparent 62%),
+        linear-gradient(180deg, #070a10, #0b0f18);
+    }
+    html[data-wallpaper="sunrise"] #wallpaper{
+      background:
+        radial-gradient(900px 700px at 20% 20%, rgba(255,140,60,.24), transparent 60%),
+        radial-gradient(900px 700px at 80% 18%, rgba(255,60,160,.18), transparent 62%),
+        radial-gradient(1200px 900px at 50% 110%, rgba(0,0,0,.45), transparent 62%),
+        linear-gradient(180deg, color-mix(in oklab, var(--bg2) 80%, #ffd2b8), var(--bg));
+    }
+    html[data-wallpaper="paper"] #wallpaper{
+      background:
+        radial-gradient(900px 700px at 20% 20%, rgba(255,255,255,.22), transparent 60%),
+        radial-gradient(900px 700px at 80% 18%, rgba(255,255,255,.16), transparent 62%),
+        linear-gradient(180deg, var(--bg2), var(--bg));
+    }
+    html[data-wallpaper="grid"] #wallpaper{
+      background:
+        radial-gradient(900px 600px at 30% 20%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 58%),
+        radial-gradient(900px 600px at 85% 18%, color-mix(in oklab, var(--accent2) 20%, transparent), transparent 62%),
+        linear-gradient(180deg, var(--bg2), var(--bg));
+    }
+    html[data-wallpaper="grid"] #wallpaper::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        linear-gradient(to right, rgba(255,255,255,.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.08) 1px, transparent 1px);
+      background-size: 44px 44px;
+      opacity: .20;
+      mask-image: radial-gradient(circle at 50% 20%, black, transparent 72%);
+      pointer-events:none;
+    }
+
+    #wallpaper::after{
+      content:"";
+      position:absolute; inset:0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
+      mix-blend-mode: overlay;
+      opacity: .45;
+      pointer-events:none;
+    }
+    #wallpaper .vignette{
+      position:absolute; inset:-2px;
+      background: radial-gradient(1200px 900px at 50% 40%, transparent 40%, rgba(0,0,0,.45) 100%);
+      opacity: .55;
+      pointer-events:none;
+    }
+
+    #desktop, #windows{
+      position:absolute;
+      inset: 0 0 var(--taskbar-h) 0;
+      z-index: 1;
+    }
+
+    #desktop{
+      padding: 18px 18px;
+      display:grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 108px;
+      grid-template-rows: repeat(auto-fill, 94px);
+      align-content:start;
+      gap: 10px 10px;
+      outline:none;
+    }
+
+    .desk-icon{
+      width: 98px;
+      height: 90px;
+      border-radius: 14px;
+      padding: 8px 8px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+      gap: 8px;
+      cursor: default;
+      color: var(--text);
+    }
+    .desk-icon:hover{
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      padding: 7px 7px;
+      backdrop-filter: blur(10px) saturate(1.1);
+    }
+    .desk-icon.selected{
+      background: color-mix(in oklab, var(--accent) 16%, rgba(255,255,255,.06));
+      border: 1px solid color-mix(in oklab, var(--accent) 35%, rgba(255,255,255,.14));
+      box-shadow: 0 10px 30px rgba(0,0,0,.20);
+    }
+    .desk-icon .img{
+      width: 42px; height: 42px;
+      border-radius: 14px;
+      display:grid; place-items:center;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 10px 22px rgba(0,0,0,.16);
+      overflow:hidden;
+    }
+    .desk-icon .img svg{ width: 22px; height:22px; }
+    .desk-icon .label{
+      width: 100%;
+      text-align:center;
+      font-size: 12px;
+      line-height: 1.2;
+      padding: 0 4px;
+      color: var(--text);
+      text-shadow: 0 2px 12px rgba(0,0,0,.35);
+      display:-webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow:hidden;
+      word-break: break-word;
+    }
+
+    /* Taskbar */
+    #taskbar{
+      position:absolute;
+      left: 10px; right: 10px; bottom: 10px;
+      height: calc(var(--taskbar-h) - 10px);
+      border-radius: 18px;
+      z-index: 50;
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow2);
+      backdrop-filter: blur(var(--blur)) saturate(1.25);
+      -webkit-backdrop-filter: blur(var(--blur)) saturate(1.25);
+
+      display:flex;
+      align-items:center;
+      padding: 8px;
+      gap: 10px;
+    }
+    #taskbar .left, #taskbar .mid, #taskbar .right{
+      display:flex; align-items:center; gap: 8px;
+    }
+    #taskbar .left{ flex:0 0 auto; }
+    #taskbar .mid{ flex:1 1 auto; min-width: 180px; }
+    #taskbar .right{ flex:0 0 auto; gap: 8px; }
+
+    .tb-btn{
+      height: 38px;
+      border-radius: 14px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text);
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      padding: 0 12px;
+      transition: transform calc(140ms * var(--motion)) var(--ease),
+                  background calc(140ms * var(--motion)) var(--ease),
+                  border-color calc(140ms * var(--motion)) var(--ease);
+    }
+    .tb-btn:hover{
+      background: rgba(255,255,255,.07);
+      border-color: rgba(255,255,255,.10);
+      transform: translateY(-1px);
+    }
+    .tb-btn:active{
+      transform: translateY(0px) scale(.98);
+    }
+    .tb-btn .icon{
+      width: 18px; height: 18px;
+      display:inline-block;
+    }
+    .tb-btn .label{ font-size: 13px; font-weight: 650; letter-spacing:.1px; }
+    .tb-btn.pill{
+      padding: 0 10px;
+    }
+
+    #tb-search{
+      flex: 1 1 auto;
+      height: 38px;
+      border-radius: 14px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      display:flex;
+      align-items:center;
+      padding: 0 10px;
+      gap: 8px;
+      min-width: 240px;
+      max-width: 560px;
+    }
+    #tb-search:focus-within{
+      border-color: color-mix(in oklab, var(--accent) 55%, var(--stroke));
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent);
+    }
+    #tb-search input{
+      width:100%;
+      height: 100%;
+      border:0;
+      outline:none;
+      background: transparent;
+      color: var(--text);
+      font-size: 13px;
+      user-select:text;
+    }
+    #tb-search .hint{
+      color: var(--faint);
+      font-size: 12px;
+    }
+
+    #tb-pins, #tb-wins{
+      display:flex; align-items:center; gap: 6px;
+      flex: 0 0 auto;
+    }
+    .tb-icon{
+      width: 42px; height: 38px;
+      border-radius: 14px;
+      border: 1px solid transparent;
+      background: transparent;
+      cursor:pointer;
+      display:grid; place-items:center;
+      position:relative;
+      transition: transform calc(140ms * var(--motion)) var(--ease),
+                  background calc(140ms * var(--motion)) var(--ease),
+                  border-color calc(140ms * var(--motion)) var(--ease);
+    }
+    .tb-icon:hover{
+      background: rgba(255,255,255,.07);
+      border-color: rgba(255,255,255,.10);
+      transform: translateY(-1px);
+    }
+    .tb-icon:active{ transform: translateY(0px) scale(.98); }
+    .tb-icon .dot{
+      position:absolute;
+      bottom: 5px; left: 50%;
+      width: 16px; height: 3px;
+      border-radius: 999px;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,.32);
+      opacity: 0;
+    }
+    .tb-icon.running .dot{ opacity: 1; }
+    .tb-icon.active .dot{
+      opacity: 1;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      box-shadow: 0 0 14px color-mix(in oklab, var(--accent) 30%, transparent);
+    }
+
+    .chip{
+      height: 38px;
+      border-radius: 14px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      padding: 0 10px;
+      cursor:pointer;
+      transition: background calc(140ms * var(--motion)) var(--ease), border-color calc(140ms * var(--motion)) var(--ease);
+    }
+    .chip:hover{
+      background: rgba(255,255,255,.08);
+      border-color: var(--stroke2);
+    }
+    .chip .stack{
+      display:flex; flex-direction:column; align-items:flex-start; line-height:1.05;
+    }
+    .chip .big{ font-size: 12px; font-weight: 700; letter-spacing:.15px; }
+    .chip .small{ font-size: 11px; color: var(--faint); }
+    .chip .icon{ width: 18px; height: 18px; }
+
+    /* Panels & overlays */
+    .panel{
+      position:absolute;
+      z-index: 60;
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(var(--blur)) saturate(1.25);
+      -webkit-backdrop-filter: blur(var(--blur)) saturate(1.25);
+      border-radius: 18px;
+      overflow:hidden;
+      transform-origin: bottom left;
+      transition: transform calc(160ms * var(--motion)) var(--ease),
+                  opacity calc(160ms * var(--motion)) var(--ease);
+    }
+    .panel.hidden{
+      opacity: 0;
+      transform: translateY(10px) scale(.98);
+      pointer-events:none;
+    }
+
+    #startMenu{
+      left: 10px;
+      bottom: calc(var(--taskbar-h) + 10px);
+      width: min(520px, calc(100% - 20px));
+      height: min(640px, calc(100% - var(--taskbar-h) - 30px));
+      display:flex;
+      flex-direction:column;
+    }
+    #startMenu header{
+      padding: 12px 12px 10px;
+      border-bottom: 1px solid var(--stroke);
+      display:flex; flex-direction:column; gap: 10px;
+    }
+    #startMenu .row{
+      display:flex; gap: 10px; align-items:center;
+    }
+    #startMenu .title{
+      font-weight: 800;
+      letter-spacing:.2px;
+      display:flex; align-items:center; gap:10px;
+    }
+    #startMenu .title .orb{
+      width: 22px; height: 22px;
+      border-radius: 999px;
+      background: radial-gradient(10px 10px at 30% 30%, rgba(255,255,255,.9), transparent 62%),
+                  radial-gradient(20px 20px at 70% 25%, color-mix(in oklab, var(--accent2) 75%, transparent), transparent 62%),
+                  radial-gradient(26px 26px at 55% 65%, color-mix(in oklab, var(--accent) 75%, transparent), transparent 62%);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.10) inset, 0 10px 20px rgba(0,0,0,.25);
+    }
+
+    #startSearch{
+      width: 100%;
+      height: 40px;
+      border-radius: 14px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      outline:none;
+      padding: 0 12px;
+      font-size: 13px;
+      user-select:text;
+    }
+    #startSearch:focus{
+      border-color: color-mix(in oklab, var(--accent) 55%, var(--stroke));
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+    }
+    #startMenu main{
+      flex:1 1 auto;
+      display:grid;
+      grid-template-columns: 1.25fr .9fr;
+      gap: 0;
+      min-height: 0;
+    }
+    #startApps{
+      padding: 12px;
+      overflow:auto;
+      border-right: 1px solid var(--stroke);
+    }
+    #startSide{
+      padding: 12px;
+      overflow:auto;
+    }
+    .app-grid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 10px;
+    }
+    .app-tile{
+      border-radius: 16px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.05);
+      padding: 10px 10px;
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      cursor:pointer;
+      transition: transform calc(150ms * var(--motion)) var(--ease),
+                  background calc(150ms * var(--motion)) var(--ease),
+                  border-color calc(150ms * var(--motion)) var(--ease);
+      min-height: 52px;
+    }
+    .app-tile:hover{
+      transform: translateY(-1px);
+      background: rgba(255,255,255,.07);
+      border-color: var(--stroke2);
+    }
+    .app-tile:active{ transform: translateY(0px) scale(.99); }
+    .app-tile .ico{
+      width: 38px; height: 38px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.10);
+      display:grid; place-items:center;
+      box-shadow: 0 10px 22px rgba(0,0,0,.14);
+      flex: 0 0 auto;
+    }
+    .app-tile .ico svg{ width: 18px; height: 18px; }
+    .app-tile .name{
+      font-weight: 750;
+      font-size: 13px;
+      letter-spacing:.1px;
+      line-height: 1.1;
+    }
+
+    .section-title{
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: .18px;
+      color: var(--muted);
+      margin: 4px 0 10px;
+      text-transform: uppercase;
+    }
+
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+    }
+    .list-item{
+      border-radius: 14px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.05);
+      padding: 10px 10px;
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      cursor:pointer;
+      transition: background calc(140ms * var(--motion)) var(--ease), border-color calc(140ms * var(--motion)) var(--ease);
+    }
+    .list-item:hover{
+      background: rgba(255,255,255,.07);
+      border-color: var(--stroke2);
+    }
+    .list-item .meta{
+      display:flex; flex-direction:column; gap: 2px; min-width: 0;
+    }
+    .list-item .meta .top{
+      font-weight: 750;
+      font-size: 13px;
+      line-height: 1.1;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
+    .list-item .meta .sub{
+      font-size: 11px;
+      color: var(--faint);
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
+    .list-item .badge{
+      margin-left:auto;
+      font-size: 11px;
+      color: var(--faint);
+    }
+
+    #startMenu footer{
+      padding: 10px 12px;
+      border-top: 1px solid var(--stroke);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap: 10px;
+    }
+    .power-row{ display:flex; gap: 8px; align-items:center; }
+    .mini-btn{
+      height: 36px;
+      border-radius: 14px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      cursor:pointer;
+      padding: 0 12px;
+      font-weight: 750;
+      font-size: 12px;
+      display:flex; align-items:center; gap: 8px;
+      transition: transform calc(140ms * var(--motion)) var(--ease),
+                  background calc(140ms * var(--motion)) var(--ease),
+                  border-color calc(140ms * var(--motion)) var(--ease);
+    }
+    .mini-btn:hover{ background: rgba(255,255,255,.08); border-color: var(--stroke2); transform: translateY(-1px); }
+    .mini-btn:active{ transform: translateY(0px) scale(.98); }
+    .mini-btn.danger{ border-color: color-mix(in oklab, #ff3b30 55%, var(--stroke)); }
+
+    /* Quick settings */
+    #quickSettings{
+      right: 10px;
+      bottom: calc(var(--taskbar-h) + 10px);
+      width: min(360px, calc(100% - 20px));
+      transform-origin: bottom right;
+    }
+    #quickSettings .qs-head{
+      padding: 12px;
+      border-bottom: 1px solid var(--stroke);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+    }
+    #quickSettings .qs-head .title{
+      display:flex; align-items:center; gap: 10px;
+      font-weight: 850;
+      letter-spacing:.15px;
+    }
+    #quickSettings .qs-grid{
+      padding: 12px;
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 10px;
+    }
+    .toggle{
+      border-radius: 16px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.05);
+      padding: 12px;
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+      cursor:pointer;
+      min-height: 78px;
+      transition: background calc(140ms * var(--motion)) var(--ease), border-color calc(140ms * var(--motion)) var(--ease), transform calc(140ms * var(--motion)) var(--ease);
+    }
+    .toggle:hover{ background: rgba(255,255,255,.07); border-color: var(--stroke2); transform: translateY(-1px); }
+    .toggle:active{ transform: translateY(0px) scale(.99); }
+    .toggle .top{
+      display:flex; align-items:center; justify-content:space-between; gap: 10px;
+    }
+    .toggle .name{ font-weight: 800; font-size: 13px; }
+    .toggle .desc{ font-size: 11px; color: var(--faint); line-height: 1.25; }
+    .pill-switch{
+      width: 42px; height: 24px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.14);
+      position:relative;
+      flex: 0 0 auto;
+    }
+    .pill-switch::after{
+      content:"";
+      position:absolute;
+      top: 50%;
+      left: 4px;
+      width: 18px; height: 18px;
+      transform: translateY(-50%);
+      border-radius: 999px;
+      background: rgba(255,255,255,.70);
+      box-shadow: 0 10px 18px rgba(0,0,0,.22);
+      transition: left calc(160ms * var(--motion)) var(--ease), background calc(160ms * var(--motion)) var(--ease);
+    }
+    .toggle.on .pill-switch{
+      background: color-mix(in oklab, var(--accent) 55%, rgba(255,255,255,.12));
+      border-color: color-mix(in oklab, var(--accent) 50%, rgba(255,255,255,.16));
+    }
+    .toggle.on .pill-switch::after{
+      left: 20px;
+      background: #fff;
+    }
+    #quickSettings .qs-foot{
+      padding: 12px;
+      border-top: 1px solid var(--stroke);
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+    }
+    .field label{
+      font-size: 11px;
+      color: var(--faint);
+    }
+    .field select, .field input[type="color"]{
+      height: 38px;
+      border-radius: 14px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding: 0 10px;
+      outline:none;
+    }
+    .field input[type="range"]{
+      width:100%;
+    }
+    .wall-grid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .wall{
+      height: 52px;
+      border-radius: 14px;
+      border: 1px solid var(--stroke);
+      cursor:pointer;
+      position:relative;
+      overflow:hidden;
+      transition: transform calc(140ms * var(--motion)) var(--ease), border-color calc(140ms * var(--motion)) var(--ease);
+    }
+    .wall:hover{ transform: translateY(-1px); border-color: var(--stroke2); }
+    .wall.active{ border-color: color-mix(in oklab, var(--accent) 60%, var(--stroke)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent); }
+    .wall[data-wall="aurora"]{ background: radial-gradient(60px 40px at 25% 30%, rgba(140,120,255,.45), transparent 60%), radial-gradient(60px 40px at 75% 30%, rgba(60,230,200,.40), transparent 60%), linear-gradient(180deg, rgba(20,24,40,.9), rgba(10,12,18,.9)); }
+    .wall[data-wall="midnight"]{ background: radial-gradient(60px 40px at 30% 25%, rgba(90,110,255,.38), transparent 60%), radial-gradient(60px 40px at 75% 30%, rgba(20,200,255,.26), transparent 60%), linear-gradient(180deg, #070a10, #0b0f18); }
+    .wall[data-wall="sunrise"]{ background: radial-gradient(60px 40px at 30% 25%, rgba(255,140,60,.42), transparent 60%), radial-gradient(60px 40px at 75% 30%, rgba(255,60,160,.30), transparent 60%), linear-gradient(180deg, rgba(20,18,24,.9), rgba(10,10,14,.9)); }
+    .wall[data-wall="paper"]{ background: radial-gradient(60px 40px at 30% 30%, rgba(255,255,255,.35), transparent 60%), radial-gradient(60px 40px at 75% 30%, rgba(255,255,255,.18), transparent 60%), linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06)); }
+    .wall[data-wall="grid"]{ background: radial-gradient(60px 40px at 30% 25%, rgba(140,120,255,.30), transparent 60%), radial-gradient(60px 40px at 75% 30%, rgba(60,230,200,.26), transparent 60%), linear-gradient(180deg, rgba(20,24,40,.8), rgba(10,12,18,.85)); }
+    .wall[data-wall="grid"]::after{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        linear-gradient(to right, rgba(255,255,255,.18) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.18) 1px, transparent 1px);
+      background-size: 14px 14px;
+      opacity: .20;
+    }
+
+    /* Notification center */
+    #notifCenter{
+      right: 10px;
+      bottom: calc(var(--taskbar-h) + 10px);
+      width: min(420px, calc(100% - 20px));
+      height: min(560px, calc(100% - var(--taskbar-h) - 30px));
+      transform-origin: bottom right;
+      display:flex;
+      flex-direction:column;
+    }
+    #notifCenter header{
+      padding: 12px;
+      border-bottom: 1px solid var(--stroke);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    #notifCenter header .hleft{
+      display:flex; align-items:center; gap: 10px;
+      font-weight: 850;
+      letter-spacing:.15px;
+    }
+    #notifList{
+      padding: 12px;
+      overflow:auto;
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+      min-height: 0;
+    }
+    .notif{
+      border-radius: 16px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.05);
+      padding: 10px 10px;
+      display:flex;
+      gap: 10px;
+      align-items:flex-start;
+    }
+    .notif .nmeta{
+      display:flex; flex-direction:column; gap: 4px; min-width: 0;
+    }
+    .notif .ntitle{ font-weight: 850; font-size: 13px; }
+    .notif .nbody{ font-size: 12px; color: var(--muted); line-height: 1.35; }
+    .notif .ntime{ margin-left:auto; font-size: 11px; color: var(--faint); white-space:nowrap; }
+    .notif .close{
+      margin-left: auto;
+      width: 30px; height: 30px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      background: transparent;
+      cursor:pointer;
+      display:grid; place-items:center;
+      color: var(--muted);
+    }
+    .notif .close:hover{ background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.10); color: var(--text); }
+
+    /* Toasts */
+    #toastArea{
+      position:absolute;
+      right: 14px;
+      bottom: calc(var(--taskbar-h) + 16px);
+      z-index: 80;
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+      pointer-events:none;
+      max-width: min(420px, calc(100% - 28px));
+    }
+    .toast{
+      pointer-events:auto;
+      border-radius: 18px;
+      border: 1px solid var(--stroke);
+      background: var(--panel);
+      box-shadow: var(--shadow2);
+      backdrop-filter: blur(var(--blur)) saturate(1.2);
+      -webkit-backdrop-filter: blur(var(--blur)) saturate(1.2);
+      padding: 12px 12px;
+      display:flex;
+      gap: 10px;
+      align-items:flex-start;
+      transform: translateY(6px);
+      opacity: 0;
+      animation: toastin calc(180ms * var(--motion)) var(--ease) forwards;
+    }
+    @keyframes toastin{
+      to{ transform: translateY(0); opacity: 1; }
+    }
+    .toast .tmeta{ display:flex; flex-direction:column; gap: 4px; min-width:0; }
+    .toast .ttitle{ font-weight: 900; font-size: 13px; }
+    .toast .tbody{ font-size: 12px; color: var(--muted); line-height: 1.35; }
+    .toast .x{
+      margin-left:auto;
+      width: 30px; height: 30px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      background: transparent;
+      cursor:pointer;
+      display:grid; place-items:center;
+      color: var(--muted);
+    }
+    .toast .x:hover{ background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.10); color: var(--text); }
+
+    /* Context menu */
+    #contextMenu{
+      position:absolute;
+      z-index: 90;
+      width: 260px;
+      border-radius: 16px;
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(var(--blur)) saturate(1.25);
+      -webkit-backdrop-filter: blur(var(--blur)) saturate(1.25);
+      padding: 6px;
+      overflow:hidden;
+    }
+    #contextMenu.hidden{ display:none; }
+    .menu-item{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      padding: 10px 10px;
+      border-radius: 12px;
+      cursor:pointer;
+      font-size: 13px;
+      color: var(--text);
+      border: 1px solid transparent;
+    }
+    .menu-item:hover{
+      background: rgba(255,255,255,.07);
+      border-color: rgba(255,255,255,.10);
+    }
+    .menu-item.disabled{
+      opacity:.45;
+      pointer-events:none;
+    }
+    .menu-item .right{
+      margin-left:auto;
+      color: var(--faint);
+      font-size: 11px;
+    }
+    .menu-sep{
+      height: 1px;
+      background: var(--stroke);
+      margin: 6px 6px;
+    }
+
+    /* Windows */
+    .window{
+      position:absolute;
+      border-radius: 18px;
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(var(--blur)) saturate(1.2);
+      -webkit-backdrop-filter: blur(var(--blur)) saturate(1.2);
+      overflow:hidden;
+      min-width: var(--win-min-w);
+      min-height: var(--win-min-h);
+      transform: translateY(8px) scale(.985);
+      opacity: 0;
+      animation: winin calc(170ms * var(--motion)) var(--ease) forwards;
+    }
+    @keyframes winin{
+      to{ transform: translateY(0) scale(1); opacity: 1; }
+    }
+    .window.closing{
+      animation: winout calc(160ms * var(--motion)) var(--ease) forwards;
+    }
+    @keyframes winout{
+      to{ transform: translateY(10px) scale(.98); opacity: 0; }
+    }
+
+    .window.active{
+      border-color: color-mix(in oklab, var(--accent) 32%, var(--stroke));
+      box-shadow: 0 26px 80px rgba(0,0,0,.58);
+    }
+
+    .titlebar{
+      height: 42px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 8px 10px 8px 10px;
+      border-bottom: 1px solid var(--stroke);
+      background: rgba(255,255,255,.03);
+      gap: 10px;
+      cursor: grab;
+    }
+    .window.dragging .titlebar{ cursor: grabbing; }
+    .titlebar .left{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .titlebar .app-ico{
+      width: 28px; height: 28px;
+      border-radius: 12px;
+      display:grid; place-items:center;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 10px 18px rgba(0,0,0,.14);
+      flex:0 0 auto;
+    }
+    .titlebar .app-ico svg{ width: 16px; height: 16px; }
+    .titlebar .title{
+      font-weight: 850;
+      font-size: 13px;
+      letter-spacing: .12px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .titlebar .subtitle{
+      font-size: 11px;
+      color: var(--faint);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      margin-top: 1px;
+    }
+    .titlebar .tstack{ display:flex; flex-direction:column; min-width: 0; }
+    .titlebar .actions{
+      display:flex;
+      align-items:center;
+      gap: 6px;
+      flex: 0 0 auto;
+    }
+    .win-btn{
+      width: 34px;
+      height: 28px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      cursor:pointer;
+      display:grid;
+      place-items:center;
+      transition: background calc(140ms * var(--motion)) var(--ease), border-color calc(140ms * var(--motion)) var(--ease), transform calc(140ms * var(--motion)) var(--ease);
+    }
+    .win-btn:hover{
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.12);
+      color: var(--text);
+      transform: translateY(-1px);
+    }
+    .win-btn:active{ transform: translateY(0px) scale(.98); }
+    .win-btn.close:hover{
+      background: color-mix(in oklab, #ff3b30 38%, rgba(255,255,255,.08));
+      border-color: color-mix(in oklab, #ff3b30 50%, rgba(255,255,255,.12));
+    }
+
+    .content{
+      height: calc(100% - 42px);
+      overflow:hidden;
+      position:relative;
+      user-select:text;
+    }
+
+    /* Resizers */
+    .resizer{
+      position:absolute;
+      z-index: 5;
+    }
+    .r-n{ top:-4px; left:10px; right:10px; height: 8px; cursor: ns-resize; }
+    .r-s{ bottom:-4px; left:10px; right:10px; height: 8px; cursor: ns-resize; }
+    .r-e{ right:-4px; top:10px; bottom:10px; width: 8px; cursor: ew-resize; }
+    .r-w{ left:-4px; top:10px; bottom:10px; width: 8px; cursor: ew-resize; }
+    .r-ne{ right:-4px; top:-4px; width: 12px; height: 12px; cursor: nesw-resize; }
+    .r-nw{ left:-4px; top:-4px; width: 12px; height: 12px; cursor: nwse-resize; }
+    .r-se{ right:-4px; bottom:-4px; width: 12px; height: 12px; cursor: nwse-resize; }
+    .r-sw{ left:-4px; bottom:-4px; width: 12px; height: 12px; cursor: nesw-resize; }
+
+    .window.maximized{
+      border-radius: 18px;
+    }
+
+    /* Snap preview */
+    #snapPreview{
+      position:absolute;
+      z-index: 55;
+      border-radius: 18px;
+      border: 2px solid color-mix(in oklab, var(--accent) 55%, rgba(255,255,255,.14));
+      background: color-mix(in oklab, var(--accent) 12%, rgba(255,255,255,.05));
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+      backdrop-filter: blur(10px) saturate(1.1);
+      -webkit-backdrop-filter: blur(10px) saturate(1.1);
+      pointer-events:none;
+      opacity:0;
+      transition: opacity calc(120ms * var(--motion)) var(--ease);
+    }
+    #snapPreview.show{ opacity: 1; }
+
+    /* Spotlight */
+    #spotlight{
+      position:absolute;
+      inset: 0;
+      z-index: 100;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      padding-top: 10vh;
+      background: rgba(0,0,0,.32);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events:none;
+      transition: opacity calc(160ms * var(--motion)) var(--ease);
+    }
+    #spotlight.show{ opacity: 1; pointer-events:auto; }
+    .spot-card{
+      width: min(720px, calc(100% - 24px));
+      border-radius: 22px;
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(var(--blur)) saturate(1.25);
+      -webkit-backdrop-filter: blur(var(--blur)) saturate(1.25);
+      overflow:hidden;
+    }
+    .spot-top{
+      padding: 12px 12px;
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      border-bottom: 1px solid var(--stroke);
+    }
+    #spotInput{
+      flex:1 1 auto;
+      height: 42px;
+      border-radius: 16px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      outline:none;
+      padding: 0 12px;
+      font-size: 14px;
+      color: var(--text);
+      user-select:text;
+    }
+    #spotInput:focus{
+      border-color: color-mix(in oklab, var(--accent) 55%, var(--stroke));
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+    }
+    #spotResults{
+      max-height: min(420px, 55vh);
+      overflow:auto;
+      padding: 10px 10px 12px;
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+    }
+    .spot-item{
+      border-radius: 16px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.05);
+      padding: 10px 10px;
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      cursor:pointer;
+    }
+    .spot-item:hover{
+      background: rgba(255,255,255,.07);
+      border-color: var(--stroke2);
+    }
+    .spot-item .ico{
+      width: 38px; height: 38px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.10);
+      display:grid; place-items:center;
+      flex:0 0 auto;
+    }
+    .spot-item .ico svg{ width: 18px; height: 18px; }
+    .spot-item .meta{ display:flex; flex-direction:column; gap: 2px; min-width:0; }
+    .spot-item .meta .top{
+      font-weight: 850;
+      font-size: 13px;
+      overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+    }
+    .spot-item .meta .sub{
+      font-size: 11px;
+      color: var(--faint);
+      overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+    }
+    .spot-item.active{
+      border-color: color-mix(in oklab, var(--accent) 55%, var(--stroke));
+      background: color-mix(in oklab, var(--accent) 12%, rgba(255,255,255,.05));
+    }
+
+    /* Alt+Tab switcher */
+    #switcher{
+      position:absolute;
+      inset: 0;
+      z-index: 95;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 16px;
+      background: rgba(0,0,0,.18);
+      backdrop-filter: blur(7px);
+      -webkit-backdrop-filter: blur(7px);
+      opacity: 0;
+      pointer-events:none;
+      transition: opacity calc(140ms * var(--motion)) var(--ease);
+    }
+    #switcher.show{ opacity: 1; pointer-events:auto; }
+    .sw-row{
+      display:flex;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 22px;
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow);
+      max-width: min(880px, 100%);
+      overflow:auto;
+      backdrop-filter: blur(var(--blur)) saturate(1.2);
+      -webkit-backdrop-filter: blur(var(--blur)) saturate(1.2);
+    }
+    .sw-item{
+      width: 180px;
+      border-radius: 18px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.05);
+      padding: 10px;
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+    .sw-item .top{
+      display:flex; align-items:center; gap: 10px;
+      font-weight: 850;
+      font-size: 13px;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
+    .sw-item .top .ico{
+      width: 34px; height: 34px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.10);
+      display:grid; place-items:center;
+      flex:0 0 auto;
+    }
+    .sw-item .top .ico svg{ width: 16px; height: 16px; }
+    .sw-item .thumb{
+      border-radius: 14px;
+      height: 86px;
+      border: 1px solid rgba(255,255,255,.10);
+      background:
+        radial-gradient(120px 60px at 30% 35%, color-mix(in oklab, var(--accent) 18%, transparent), transparent 70%),
+        radial-gradient(120px 60px at 70% 25%, color-mix(in oklab, var(--accent2) 15%, transparent), transparent 70%),
+        rgba(255,255,255,.06);
+      position:relative;
+      overflow:hidden;
+    }
+    .sw-item .thumb::after{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        linear-gradient(0deg, rgba(0,0,0,.22), transparent 55%);
+      opacity: .6;
+    }
+    .sw-item.active{
+      border-color: color-mix(in oklab, var(--accent) 60%, var(--stroke));
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+    }
+
+    /* Dialog */
+    #dialogOverlay{
+      position:absolute;
+      inset:0;
+      z-index: 110;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 14px;
+      background: rgba(0,0,0,.35);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events:none;
+      transition: opacity calc(160ms * var(--motion)) var(--ease);
+    }
+    #dialogOverlay.show{ opacity:1; pointer-events:auto; }
+    .dialog{
+      width: min(520px, 100%);
+      border-radius: 22px;
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      backdrop-filter: blur(var(--blur)) saturate(1.2);
+      -webkit-backdrop-filter: blur(var(--blur)) saturate(1.2);
+    }
+    .dialog header{
+      padding: 14px 14px 10px;
+      border-bottom: 1px solid var(--stroke);
+      font-weight: 900;
+      letter-spacing:.15px;
+      display:flex;
+      align-items:center;
+      gap: 10px;
+    }
+    .dialog .body{
+      padding: 12px 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .dialog .body input{
+      width:100%;
+      height: 42px;
+      border-radius: 16px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      outline:none;
+      padding: 0 12px;
+      margin-top: 10px;
+      user-select:text;
+    }
+    .dialog footer{
+      padding: 12px 14px 14px;
+      border-top: 1px solid var(--stroke);
+      display:flex;
+      justify-content:flex-end;
+      gap: 10px;
+    }
+
+    /* Lock screen */
+    #lockScreen{
+      position:absolute;
+      inset:0;
+      z-index: 120;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: rgba(0,0,0,.35);
+      backdrop-filter: blur(18px) saturate(1.2);
+      -webkit-backdrop-filter: blur(18px) saturate(1.2);
+      opacity: 0;
+      pointer-events:none;
+      transition: opacity calc(200ms * var(--motion)) var(--ease);
+    }
+    #lockScreen.show{ opacity:1; pointer-events:auto; }
+    .lock-card{
+      width:min(520px, calc(100% - 28px));
+      border-radius: 26px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: var(--shadow);
+      padding: 22px;
+      text-align:center;
+    }
+    .lock-time{
+      font-size: 54px;
+      font-weight: 950;
+      letter-spacing: -1px;
+    }
+    .lock-date{
+      margin-top: 8px;
+      color: rgba(255,255,255,.75);
+      font-weight: 700;
+    }
+    html[data-theme="light"] .lock-date{ color: rgba(10,12,18,.68); }
+    .lock-hint{
+      margin-top: 16px;
+      color: rgba(255,255,255,.70);
+      font-size: 12px;
+    }
+    html[data-theme="light"] .lock-hint{ color: rgba(10,12,18,.62); }
+
+    /* App layouts */
+    .app{
+      height: 100%;
+      display:flex;
+      flex-direction:column;
+      background: rgba(255,255,255,.02);
+    }
+    .app-toolbar{
+      padding: 10px 10px;
+      border-bottom: 1px solid var(--stroke);
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      background: rgba(255,255,255,.02);
+      flex: 0 0 auto;
+    }
+    .app-toolbar .spacer{ flex:1 1 auto; }
+    .app-toolbar .btn{
+      height: 34px;
+      border-radius: 14px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      cursor:pointer;
+      padding: 0 10px;
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      font-weight: 750;
+      font-size: 12px;
+    }
+    .app-toolbar .btn:hover{
+      background: rgba(255,255,255,.08);
+      border-color: var(--stroke2);
+    }
+    .app-toolbar .btn:active{ transform: scale(.99); }
+    .app-toolbar .btn svg{ width: 15px; height: 15px; }
+    .app-toolbar input[type="text"]{
+      height: 34px;
+      border-radius: 14px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      outline:none;
+      padding: 0 10px;
+      user-select:text;
+      flex: 1 1 auto;
+      min-width: 120px;
+    }
+
+    /* Files app */
+    .files{
+      display:grid;
+      grid-template-columns: 190px 1fr;
+      height:100%;
+      min-height:0;
+    }
+    .files .side{
+      border-right: 1px solid var(--stroke);
+      padding: 10px;
+      overflow:auto;
+      min-height:0;
+    }
+    .nav{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+    }
+    .nav .nav-item{
+      border-radius: 14px;
+      border: 1px solid transparent;
+      background: transparent;
+      padding: 10px 10px;
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      cursor:pointer;
+      color: var(--text);
+    }
+    .nav .nav-item:hover{
+      background: rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.08);
+    }
+    .nav .nav-item.active{
+      background: color-mix(in oklab, var(--accent) 12%, rgba(255,255,255,.05));
+      border-color: color-mix(in oklab, var(--accent) 40%, rgba(255,255,255,.10));
+    }
+    .nav .nav-item svg{ width: 16px; height: 16px; }
+    .files .main{
+      overflow:auto;
+      min-height:0;
+      padding: 10px;
+    }
+    .crumbs{
+      display:flex;
+      gap: 6px;
+      align-items:center;
+      flex-wrap:wrap;
+      padding: 6px 0 10px;
+    }
+    .crumb{
+      font-size: 12px;
+      color: var(--muted);
+      cursor:pointer;
+      border-radius: 999px;
+      padding: 4px 8px;
+      border: 1px solid transparent;
+      background: transparent;
+    }
+    .crumb:hover{
+      background: rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.08);
+      color: var(--text);
+    }
+
+    .file-grid{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+    }
+    .file-row{
+      display:grid;
+      grid-template-columns: 36px 1fr 120px;
+      align-items:center;
+      gap: 10px;
+      padding: 10px 10px;
+      border-radius: 16px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.05);
+      cursor:pointer;
+      transition: background calc(140ms * var(--motion)) var(--ease), border-color calc(140ms * var(--motion)) var(--ease);
+    }
+    .file-row:hover{
+      background: rgba(255,255,255,.07);
+      border-color: var(--stroke2);
+    }
+    .file-row.selected{
+      background: color-mix(in oklab, var(--accent) 12%, rgba(255,255,255,.05));
+      border-color: color-mix(in oklab, var(--accent) 48%, var(--stroke));
+    }
+    .file-row .fi{
+      width: 36px; height: 36px;
+      border-radius: 14px;
+      display:grid; place-items:center;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.10);
+    }
+    .file-row .fi svg{ width: 18px; height: 18px; }
+    .file-row .name{
+      font-weight: 800;
+      font-size: 13px;
+      overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+    }
+    .file-row .meta{
+      font-size: 11px;
+      color: var(--faint);
+      text-align:right;
+      white-space:nowrap;
+    }
+
+    .dropzone{
+      border: 1px dashed rgba(255,255,255,.18);
+      border-radius: 18px;
+      background: rgba(255,255,255,.03);
+      padding: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+      margin-top: 10px;
+    }
+
+    /* Editor app */
+    .editor{
+      display:grid;
+      grid-template-columns: 1fr;
+      height:100%;
+      min-height:0;
+    }
+    .editor .split{
+      flex:1 1 auto;
+      min-height:0;
+      display:grid;
+      grid-template-columns: 1fr 0;
+      transition: grid-template-columns calc(170ms * var(--motion)) var(--ease);
+    }
+    .editor.preview .split{
+      grid-template-columns: 1fr 1fr;
+    }
+    .editor textarea{
+      width:100%;
+      height:100%;
+      resize:none;
+      border:0;
+      outline:none;
+      padding: 12px 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      font-size: 12.5px;
+      color: var(--text);
+      background: rgba(0,0,0,.08);
+      user-select:text;
+      line-height: 1.45;
+    }
+    html[data-theme="light"] .editor textarea{ background: rgba(0,0,0,.03); }
+    .previewPane{
+      border-left: 1px solid var(--stroke);
+      background: rgba(255,255,255,.03);
+      overflow:auto;
+      padding: 12px;
+      min-height:0;
+    }
+    .md h1{ font-size: 20px; margin: 0 0 10px; }
+    .md h2{ font-size: 16px; margin: 14px 0 8px; }
+    .md p{ margin: 0 0 10px; color: var(--muted); line-height: 1.45; }
+    .md code{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      font-size: 12px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      padding: 1px 6px;
+      color: var(--text);
+    }
+    .md pre{
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 16px;
+      padding: 10px;
+      overflow:auto;
+    }
+    .md pre code{
+      background: transparent;
+      border:0;
+      padding:0;
+    }
+    .md ul{ margin: 0 0 10px 18px; color: var(--muted); }
+    .md a{ color: color-mix(in oklab, var(--accent) 90%, #fff); text-decoration:none; }
+    .md a:hover{ text-decoration:underline; }
+
+    /* Terminal */
+    .terminal{
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      background: rgba(0,0,0,.16);
+    }
+    html[data-theme="light"] .terminal{ background: rgba(0,0,0,.04); }
+    .term-out{
+      flex:1 1 auto;
+      min-height:0;
+      overflow:auto;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      font-size: 12.5px;
+      line-height: 1.45;
+      user-select:text;
+    }
+    .term-line{
+      color: rgba(255,255,255,.88);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    html[data-theme="light"] .term-line{ color: rgba(10,12,18,.88); }
+    .term-line.dim{ color: var(--faint); }
+    .term-in{
+      padding: 10px 12px;
+      border-top: 1px solid rgba(255,255,255,.10);
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      font-size: 12.5px;
+    }
+    .prompt{
+      color: color-mix(in oklab, var(--accent2) 70%, #fff);
+      font-weight: 700;
+      white-space:nowrap;
+    }
+    .term-in input{
+      flex:1 1 auto;
+      height: 34px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      outline:none;
+      color: var(--text);
+      padding: 0 10px;
+      user-select:text;
+    }
+
+    /* Browser */
+    .browser{
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      background: rgba(255,255,255,.02);
+    }
+    .browser .bar{
+      padding: 10px;
+      border-bottom: 1px solid var(--stroke);
+      display:flex;
+      gap: 8px;
+      align-items:center;
+    }
+    .browser .bar input{
+      flex:1 1 auto;
+      height: 34px;
+      border-radius: 14px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      outline:none;
+      padding: 0 10px;
+      user-select:text;
+    }
+    .browser .view{
+      position:relative;
+      flex:1 1 auto;
+      min-height:0;
+      background: rgba(0,0,0,.08);
+    }
+    html[data-theme="light"] .browser .view{ background: rgba(0,0,0,.03); }
+    .browser iframe{
+      border:0;
+      width:100%;
+      height:100%;
+    }
+    .browser .overlay{
+      position:absolute;
+      inset: 0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 20px;
+      background: rgba(0,0,0,.18);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .browser .overlay.show{ display:flex; }
+    .browser .overlay .card{
+      width: min(560px, 100%);
+      border-radius: 22px;
+      border: 1px solid var(--stroke);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+    .browser .overlay .card h3{
+      margin: 0 0 6px;
+      font-size: 14px;
+      font-weight: 900;
+    }
+    .browser .overlay .card p{
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    /* Calculator */
+    .calc{
+      height:100%;
+      display:flex;
+      flex-direction:column;
+    }
+    .calc .disp{
+      padding: 14px 14px;
+      border-bottom: 1px solid var(--stroke);
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+      background: rgba(255,255,255,.02);
+      user-select:text;
+    }
+    .calc .expr{
+      color: var(--faint);
+      font-size: 12px;
+      min-height: 16px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .calc .out{
+      font-weight: 950;
+      font-size: 28px;
+      letter-spacing: -0.4px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .calc .keys{
+      padding: 12px;
+      flex:1 1 auto;
+      min-height:0;
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 10px;
+    }
+    .kbtn{
+      border-radius: 18px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 850;
+      cursor:pointer;
+      display:grid;
+      place-items:center;
+      min-height: 52px;
+      transition: transform calc(140ms * var(--motion)) var(--ease), background calc(140ms * var(--motion)) var(--ease), border-color calc(140ms * var(--motion)) var(--ease);
+    }
+    .kbtn:hover{ background: rgba(255,255,255,.08); border-color: var(--stroke2); transform: translateY(-1px); }
+    .kbtn:active{ transform: translateY(0) scale(.99); }
+    .kbtn.op{
+      background: color-mix(in oklab, var(--accent) 16%, rgba(255,255,255,.06));
+      border-color: color-mix(in oklab, var(--accent) 35%, var(--stroke));
+    }
+    .kbtn.eq{
+      background: linear-gradient(90deg, color-mix(in oklab, var(--accent) 82%, #fff), color-mix(in oklab, var(--accent2) 78%, #fff));
+      border-color: rgba(255,255,255,.20);
+      color: rgba(0,0,0,.85);
+    }
+    html[data-theme="light"] .kbtn.eq{ color: rgba(0,0,0,.88); }
+
+    /* Notes */
+    .notes{
+      height:100%;
+      display:grid;
+      grid-template-columns: 220px 1fr;
+      min-height:0;
+    }
+    .notes .left{
+      border-right: 1px solid var(--stroke);
+      padding: 10px;
+      overflow:auto;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+    .notes .note-item{
+      border-radius: 16px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.05);
+      padding: 10px;
+      cursor:pointer;
+    }
+    .notes .note-item.active{
+      border-color: color-mix(in oklab, var(--accent) 55%, var(--stroke));
+      background: color-mix(in oklab, var(--accent) 10%, rgba(255,255,255,.05));
+    }
+    .notes .note-item .t{
+      font-weight: 850;
+      font-size: 13px;
+      overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+    }
+    .notes .note-item .s{
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--faint);
+      overflow:hidden;
+      display:-webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .notes .right{
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+    }
+    .notes .right input{
+      margin: 10px 10px 0;
+      height: 36px;
+      border-radius: 14px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      outline:none;
+      padding: 0 10px;
+      user-select:text;
+    }
+    .notes .right textarea{
+      margin: 10px;
+      flex:1 1 auto;
+      min-height:0;
+      border-radius: 18px;
+      border: 1px solid var(--stroke);
+      background: rgba(0,0,0,.08);
+      color: var(--text);
+      outline:none;
+      padding: 12px;
+      resize:none;
+      font-size: 13px;
+      line-height: 1.45;
+      user-select:text;
+    }
+    html[data-theme="light"] .notes .right textarea{ background: rgba(0,0,0,.03); }
+
+    /* Media */
+    .media{
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      min-height:0;
+      padding: 12px;
+      gap: 12px;
+    }
+    .media .drop{
+      flex:1 1 auto;
+      min-height:0;
+      border-radius: 22px;
+      border: 1px dashed rgba(255,255,255,.18);
+      background: rgba(255,255,255,.04);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      color: var(--muted);
+      padding: 14px;
+      line-height: 1.4;
+    }
+    .media .player{
+      border-radius: 18px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.05);
+      padding: 12px;
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+    .media .player .row{ display:flex; align-items:center; gap: 10px; }
+    .media audio{ width: 100%; }
+
+    /* About */
+    .about{
+      height:100%;
+      padding: 12px;
+      overflow:auto;
+    }
+    .about .hero{
+      border-radius: 22px;
+      border: 1px solid var(--stroke);
+      background:
+        radial-gradient(420px 220px at 22% 22%, color-mix(in oklab, var(--accent) 18%, transparent), transparent 70%),
+        radial-gradient(420px 220px at 82% 18%, color-mix(in oklab, var(--accent2) 16%, transparent), transparent 72%),
+        rgba(255,255,255,.05);
+      padding: 14px;
+      display:flex;
+      gap: 12px;
+      align-items:center;
+    }
+    .about .hero .orb{
+      width: 44px; height: 44px;
+      border-radius: 18px;
+      background:
+        radial-gradient(16px 16px at 30% 30%, rgba(255,255,255,.9), transparent 62%),
+        radial-gradient(26px 26px at 70% 25%, color-mix(in oklab, var(--accent2) 75%, transparent), transparent 62%),
+        radial-gradient(34px 34px at 55% 65%, color-mix(in oklab, var(--accent) 75%, transparent), transparent 62%);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.10) inset, 0 18px 40px rgba(0,0,0,.25);
+    }
+    .about h2{ margin: 0; font-size: 16px; font-weight: 950; letter-spacing:.15px; }
+    .about p{ margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .about .grid{
+      margin-top: 12px;
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 10px;
+    }
+    .about .card{
+      border-radius: 18px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.05);
+      padding: 12px;
+    }
+    .about .card h3{
+      margin: 0 0 8px;
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .18px;
+      font-weight: 900;
+    }
+    .about .kbd{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .tag{
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      background: rgba(255,255,255,.05);
+      padding: 4px 8px;
+      color: var(--text);
+      font-weight: 750;
+      font-size: 11px;
+    }
+
+    /* Small screens: simplify */
+    @media (max-width: 740px){
+      #tb-search{ display:none; }
+      .files{ grid-template-columns: 1fr; }
+      .files .side{ display:none; }
+      .notes{ grid-template-columns: 1fr; }
+      .notes .left{ display:none; }
+      .about .grid{ grid-template-columns: 1fr; }
+      .app-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+
+    noscript{
+      position:fixed; inset:0;
+      display:grid; place-items:center;
+      background: #000;
+      color: #fff;
+      font-family: var(--font);
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <noscript>Enable JavaScript to run NebulaOS.</noscript>
+
+  <div id="boot">
+    <div class="boot-card">
+      <div class="brand">
+        <div class="orb" aria-hidden="true"></div>
+        <div>NebulaOS</div>
+      </div>
+      <div class="sub">
+        A polished browser-based desktop with windows, apps, and a tiny persistent filesystem.
+        <br/>Tip: <b>Ctrl+Space</b> Spotlight • <b>Alt+Tab</b> Switcher • <b>Meta</b> Start.
+      </div>
+      <div class="bar" aria-hidden="true"><i></i></div>
+    </div>
+  </div>
+
+  <div id="os" class="hidden" role="application" aria-label="NebulaOS">
+    <div id="wallpaper" aria-hidden="true"><div class="vignette"></div></div>
+    <div id="desktop" tabindex="0" aria-label="Desktop"></div>
+    <div id="windows" aria-label="Windows"></div>
+
+    <div id="snapPreview" aria-hidden="true"></div>
+
+    <!-- Taskbar -->
+    <div id="taskbar" role="navigation" aria-label="Taskbar">
+      <div class="left">
+        <button id="btnStart" class="tb-btn pill" title="Start (Meta)">
+          <span class="icon" id="icoStart"></span>
+          <span class="label">Start</span>
+        </button>
+      </div>
+
+      <div class="mid">
+        <div id="tb-search" title="Spotlight (Ctrl+Space)">
+          <span id="icoSearch" class="icon"></span>
+          <input id="taskSearch" placeholder="Search apps, files, and actions…" />
+        </div>
+
+        <div id="tb-pins" aria-label="Pinned apps"></div>
+        <div id="tb-wins" aria-label="Open windows"></div>
+      </div>
+
+      <div class="right">
+        <div id="chipNotif" class="chip" title="Notifications">
+          <span id="icoBell" class="icon"></span>
+          <div class="stack">
+            <div class="big" id="notifCount">0</div>
+            <div class="small">Alerts</div>
+          </div>
+        </div>
+        <div id="chipClock" class="chip" title="Quick settings">
+          <span id="icoClock" class="icon"></span>
+          <div class="stack">
+            <div class="big" id="clockTime">--:--</div>
+            <div class="small" id="clockDate">---</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Start menu -->
+    <section id="startMenu" class="panel hidden" aria-label="Start menu">
+      <header>
+        <div class="row" style="justify-content:space-between;">
+          <div class="title"><span class="orb" aria-hidden="true"></span><span>Start</span></div>
+          <button id="btnSpot" class="mini-btn" title="Spotlight (Ctrl+Space)">
+            <span id="icoSpark" class="icon"></span>
+            Spotlight
+          </button>
+        </div>
+        <input id="startSearch" placeholder="Search apps and files…" />
+      </header>
+
+      <main>
+        <div id="startApps">
+          <div class="section-title">Apps</div>
+          <div id="appsGrid" class="app-grid"></div>
+        </div>
+        <div id="startSide">
+          <div class="section-title">Recent</div>
+          <div id="recentList" class="list"></div>
+
+          <div style="height:12px"></div>
+          <div class="section-title">Shortcuts</div>
+          <div class="list">
+            <div class="list-item" id="openDocs">
+              <span id="icoFolder" class="icon"></span>
+              <div class="meta">
+                <div class="top">Open Documents</div>
+                <div class="sub">Jump to your files</div>
+              </div>
+              <div class="badge">↩</div>
+            </div>
+            <div class="list-item" id="openSettings">
+              <span id="icoGear" class="icon"></span>
+              <div class="meta">
+                <div class="top">Settings</div>
+                <div class="sub">Theme, wallpaper, storage</div>
+              </div>
+            </div>
+            <div class="list-item" id="openAbout">
+              <span id="icoInfo" class="icon"></span>
+              <div class="meta">
+                <div class="top">About NebulaOS</div>
+                <div class="sub">Shortcuts & features</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer>
+        <div class="power-row">
+          <button class="mini-btn" id="btnLock"><span id="icoLock" class="icon"></span>Lock</button>
+          <button class="mini-btn" id="btnRestart"><span id="icoRefresh" class="icon"></span>Restart</button>
+          <button class="mini-btn danger" id="btnShutdown"><span id="icoPower" class="icon"></span>Shut down</button>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <span class="tag" id="tagTheme">Dark</span>
+          <span class="tag" id="tagDnd">DND off</span>
+        </div>
+      </footer>
+    </section>
+
+    <!-- Quick settings -->
+    <section id="quickSettings" class="panel hidden" aria-label="Quick settings">
+      <div class="qs-head">
+        <div class="title"><span id="icoSliders" class="icon"></span>Quick Settings</div>
+        <button class="mini-btn" id="btnAllSettings"><span id="icoGear2" class="icon"></span>Settings</button>
+      </div>
+      <div class="qs-grid">
+        <div class="toggle" id="togDark">
+          <div class="top">
+            <div class="name">Dark Mode</div>
+            <div class="pill-switch" aria-hidden="true"></div>
+          </div>
+          <div class="desc">Toggle light/dark theme.</div>
+        </div>
+        <div class="toggle" id="togDnd">
+          <div class="top">
+            <div class="name">Do Not Disturb</div>
+            <div class="pill-switch" aria-hidden="true"></div>
+          </div>
+          <div class="desc">Silence toast popups.</div>
+        </div>
+        <div class="toggle" id="togMotion">
+          <div class="top">
+            <div class="name">Reduce Motion</div>
+            <div class="pill-switch" aria-hidden="true"></div>
+          </div>
+          <div class="desc">Snappier, fewer animations.</div>
+        </div>
+        <div class="toggle" id="tog24h">
+          <div class="top">
+            <div class="name">24-hour Clock</div>
+            <div class="pill-switch" aria-hidden="true"></div>
+          </div>
+          <div class="desc">Time format preference.</div>
+        </div>
+      </div>
+      <div class="qs-foot">
+        <div class="field">
+          <label>Accent color</label>
+          <input id="accentPicker" type="color" />
+        </div>
+        <div class="field">
+          <label>Volume</label>
+          <input id="volRange" type="range" min="0" max="1" step="0.01" />
+        </div>
+        <div class="field">
+          <label>Wallpaper</label>
+          <div class="wall-grid" id="wallGrid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Notifications -->
+    <section id="notifCenter" class="panel hidden" aria-label="Notification center">
+      <header>
+        <div class="hleft"><span id="icoBell2" class="icon"></span>Notifications</div>
+        <button class="mini-btn" id="btnClearNotifs"><span id="icoTrash" class="icon"></span>Clear</button>
+      </header>
+      <div id="notifList"></div>
+    </section>
+
+    <!-- Spotlight -->
+    <div id="spotlight" aria-label="Spotlight search">
+      <div class="spot-card">
+        <div class="spot-top">
+          <span id="icoSpark2" class="icon"></span>
+          <input id="spotInput" placeholder="Type to search apps, files, actions…" />
+          <button class="mini-btn" id="spotClose"><span id="icoX" class="icon"></span>Esc</button>
+        </div>
+        <div id="spotResults"></div>
+      </div>
+    </div>
+
+    <!-- Alt+Tab -->
+    <div id="switcher" aria-label="Window switcher">
+      <div class="sw-row" id="swRow"></div>
+    </div>
+
+    <!-- Dialog -->
+    <div id="dialogOverlay" aria-hidden="true">
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+        <header><span id="icoDialog" class="icon"></span><span id="dlgTitle">Dialog</span></header>
+        <div class="body" id="dlgBody"></div>
+        <footer>
+          <button class="mini-btn" id="dlgCancel">Cancel</button>
+          <button class="mini-btn" id="dlgOk">OK</button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Lock screen -->
+    <div id="lockScreen" aria-label="Lock screen">
+      <div class="lock-card">
+        <div class="lock-time" id="lockTime">--:--</div>
+        <div class="lock-date" id="lockDate">---</div>
+        <div class="lock-hint">Click anywhere or press <b>Enter</b> to unlock.</div>
+      </div>
+    </div>
+
+    <div id="toastArea" aria-label="Toasts"></div>
+    <div id="contextMenu" class="hidden" aria-label="Context menu"></div>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      // ---------- helpers ----------
+      const $ = (sel, root = document) => root.querySelector(sel);
+      const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+      const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+      const now = () => Date.now();
+      const uid = () => Math.random().toString(16).slice(2) + "-" + Date.now().toString(16);
+      const fmtBytes = (n) => {
+        if (!Number.isFinite(n)) return "—";
+        const u = ["B","KB","MB","GB"];
+        let i = 0, v = n;
+        while (v >= 1024 && i < u.length - 1){ v /= 1024; i++; }
+        return (i === 0 ? String(v|0) : v.toFixed(v >= 10 ? 1 : 2)) + " " + u[i];
+      };
+      const escHtml = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      const isMac = /Mac|iPhone|iPad|iPod/i.test(navigator.platform);
+
+      function el(tag, attrs = {}, ...children){
+        const node = document.createElement(tag);
+        for (const [k,v] of Object.entries(attrs)){
+          if (k === "class") node.className = v;
+          else if (k === "style") node.setAttribute("style", v);
+          else if (k.startsWith("on") && typeof v === "function") node.addEventListener(k.slice(2), v);
+          else if (k === "html") node.innerHTML = v;
+          else node.setAttribute(k, v);
+        }
+        for (const ch of children.flat()){
+          if (ch == null) continue;
+          node.appendChild(typeof ch === "string" ? document.createTextNode(ch) : ch);
+        }
+        return node;
+      }
+
+      // ---------- icons ----------
+      const Icons = {
+        start: `<svg viewBox="0 0 24 24" fill="none"><path d="M4 4h8v8H4V4Zm0 10h8v6H4v-6Zm10-10h6v6h-6V4Zm0 8h6v12h-6V12Z" fill="currentColor"/></svg>`,
+        search: `<svg viewBox="0 0 24 24" fill="none"><path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="2"/><path d="M16.2 16.2 21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+        bell: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 22a2.2 2.2 0 0 0 2.1-1.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 9.7A6 6 0 0 1 12 4a6 6 0 0 1 6 5.7c0 6.5 2 6.5 2 7.8H4c0-1.3 2-1.3 2-7.8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`,
+        clock: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        spark: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z" fill="currentColor"/><path d="M20.5 14.5 22 20l-5.5-1.5L15 13l5.5 1.5Z" fill="currentColor" opacity=".7"/></svg>`,
+        sliders: `<svg viewBox="0 0 24 24" fill="none"><path d="M6 4v10M6 20v-2M12 4v4M12 20V10M18 4v7M18 20v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 14h4M10 8h4M16 11h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+        gear: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 15.6a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2Z" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a8.3 8.3 0 0 0 .1-2l2-1.5-2-3.5-2.4.7a8 8 0 0 0-1.7-1l-.4-2.5H11l-.4 2.5a8 8 0 0 0-1.7 1L6.5 8l-2 3.5L6.5 13a8.3 8.3 0 0 0 .1 2L4.5 16.5l2 3.5 2.4-.7c.5.4 1.1.8 1.7 1l.4 2.5h4l.4-2.5c.6-.2 1.2-.6 1.7-1l2.4.7 2-3.5L19.4 15Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`,
+        folder: `<svg viewBox="0 0 24 24" fill="none"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h4l2 2H18.5A2.5 2.5 0 0 1 21 9.5v8A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5v-10Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`,
+        file: `<svg viewBox="0 0 24 24" fill="none"><path d="M7 3h7l3 3v15a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M14 3v4a2 2 0 0 0 2 2h4" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`,
+        term: `<svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4V6Z" stroke="currentColor" stroke-width="2"/><path d="M7 9l3 3-3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 15h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+        edit: `<svg viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0 0-3L16.5 4.5a2.1 2.1 0 0 0-3 0L3 15v5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13.5 6.5l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+        web: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z" stroke="currentColor" stroke-width="2"/><path d="M2 12h20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 2c3 2.6 4.6 6 4.6 10S15 19.4 12 22c-3-2.6-4.6-6-4.6-10S9 4.6 12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`,
+        calc: `<svg viewBox="0 0 24 24" fill="none"><path d="M6 3h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2"/><path d="M7 7h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 11h2M11 11h2M15 11h2M7 15h2M11 15h2M15 15h2M7 19h2M11 19h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+        note: `<svg viewBox="0 0 24 24" fill="none"><path d="M6 3h12a2 2 0 0 1 2 2v11l-5 5H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2"/><path d="M20 16h-4a2 2 0 0 0-2 2v4" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 8h8M8 12h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+        music: `<svg viewBox="0 0 24 24" fill="none"><path d="M9 18a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="2"/><path d="M17 16a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="2"/><path d="M12 19V6l8-2v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        info: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 22a10 10 0 1 0-10-10 10 10 0 0 0 10 10Z" stroke="currentColor" stroke-width="2"/><path d="M12 10v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 7h.01" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>`,
+        lock: `<svg viewBox="0 0 24 24" fill="none"><path d="M7 11V8a5 5 0 0 1 10 0v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 11h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`,
+        power: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 2v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6.2 5.6A9 9 0 1 0 17.8 5.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+        refresh: `<svg viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-2.6-6.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M21 3v6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        trash: `<svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10 11v7M14 11v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 7l1 14h10l1-14" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 7V4h6v3" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`,
+        x: `<svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+        min: `<svg viewBox="0 0 24 24" fill="none"><path d="M6 12h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+        max: `<svg viewBox="0 0 24 24" fill="none"><path d="M7 7h10v10H7V7Z" stroke="currentColor" stroke-width="2"/></svg>`,
+        restore: `<svg viewBox="0 0 24 24" fill="none"><path d="M8 8h10v10H8V8Z" stroke="currentColor" stroke-width="2"/><path d="M6 16H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+        dot: `<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4"/></svg>`,
+        upload: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 16V4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 9l5-5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+        download: `<svg viewBox="0 0 24 24" fill="none"><path d="M12 4v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 11l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`
+      };
+
+      function setIcon(elm, svg){ elm.innerHTML = svg; elm.style.display="grid"; elm.style.placeItems="center"; }
+      function iconNode(svg){ return el("span", {class:"icon", html: svg}); }
+
+      // ---------- DOM ----------
+      const dom = {
+        boot: $("#boot"),
+        os: $("#os"),
+        desktop: $("#desktop"),
+        wins: $("#windows"),
+        snapPreview: $("#snapPreview"),
+
+        taskbar: $("#taskbar"),
+        tbPins: $("#tb-pins"),
+        tbWins: $("#tb-wins"),
+        btnStart: $("#btnStart"),
+        taskSearch: $("#taskSearch"),
+        chipClock: $("#chipClock"),
+        chipNotif: $("#chipNotif"),
+        notifCount: $("#notifCount"),
+        clockTime: $("#clockTime"),
+        clockDate: $("#clockDate"),
+
+        startMenu: $("#startMenu"),
+        startSearch: $("#startSearch"),
+        appsGrid: $("#appsGrid"),
+        recentList: $("#recentList"),
+        btnSpot: $("#btnSpot"),
+        openDocs: $("#openDocs"),
+        openSettings: $("#openSettings"),
+        openAbout: $("#openAbout"),
+        btnLock: $("#btnLock"),
+        btnRestart: $("#btnRestart"),
+        btnShutdown: $("#btnShutdown"),
+        tagTheme: $("#tagTheme"),
+        tagDnd: $("#tagDnd"),
+
+        quickSettings: $("#quickSettings"),
+        btnAllSettings: $("#btnAllSettings"),
+        togDark: $("#togDark"),
+        togDnd: $("#togDnd"),
+        togMotion: $("#togMotion"),
+        tog24h: $("#tog24h"),
+        accentPicker: $("#accentPicker"),
+        volRange: $("#volRange"),
+        wallGrid: $("#wallGrid"),
+
+        notifCenter: $("#notifCenter"),
+        notifList: $("#notifList"),
+        btnClearNotifs: $("#btnClearNotifs"),
+
+        toastArea: $("#toastArea"),
+        contextMenu: $("#contextMenu"),
+
+        spotlight: $("#spotlight"),
+        spotInput: $("#spotInput"),
+        spotResults: $("#spotResults"),
+        spotClose: $("#spotClose"),
+
+        switcher: $("#switcher"),
+        swRow: $("#swRow"),
+
+        dialogOverlay: $("#dialogOverlay"),
+        dlgTitle: $("#dlgTitle"),
+        dlgBody: $("#dlgBody"),
+        dlgOk: $("#dlgOk"),
+        dlgCancel: $("#dlgCancel"),
+
+        lockScreen: $("#lockScreen"),
+        lockTime: $("#lockTime"),
+        lockDate: $("#lockDate"),
+      };
+
+      // Icon wiring
+      setIcon($("#icoStart"), Icons.start);
+      setIcon($("#icoSearch"), Icons.search);
+      setIcon($("#icoBell"), Icons.bell);
+      setIcon($("#icoBell2"), Icons.bell);
+      setIcon($("#icoClock"), Icons.clock);
+      setIcon($("#icoSpark"), Icons.spark);
+      setIcon($("#icoSpark2"), Icons.spark);
+      setIcon($("#icoSliders"), Icons.sliders);
+      setIcon($("#icoGear"), Icons.gear);
+      setIcon($("#icoGear2"), Icons.gear);
+      setIcon($("#icoFolder"), Icons.folder);
+      setIcon($("#icoInfo"), Icons.info);
+      setIcon($("#icoLock"), Icons.lock);
+      setIcon($("#icoRefresh"), Icons.refresh);
+      setIcon($("#icoPower"), Icons.power);
+      setIcon($("#icoTrash"), Icons.trash);
+      setIcon($("#icoX"), Icons.x);
+      setIcon($("#icoDialog"), Icons.spark);
+
+      // ---------- persistence ----------
+      const KEYS = {
+        settings: "nebula.settings.v1",
+        fs: "nebula.fs.v1",
+        recent: "nebula.recent.v1",
+        notes: "nebula.notes.v1",
+      };
+
+      const defaultSettings = () => ({
+        theme: "dark",          // dark | light | auto
+        accent: "#7c5cff",
+        wallpaper: "aurora",
+        reduceMotion: false,
+        dnd: false,
+        clock24: false,
+        volume: 0.6
+      });
+
+      const state = {
+        z: 20,
+        nextWin: 1,
+        focused: null,
+        windows: new Map(), // id -> win
+        pinned: ["files","editor","terminal","browser","notes","calculator","settings"],
+        recent: [],
+        notifications: [],
+        settings: defaultSettings(),
+        lastCascade: 0,
+        altTab: {open:false, index:0, ids:[]},
+      };
+
+      function loadSettings(){
+        try{
+          const raw = localStorage.getItem(KEYS.settings);
+          if (raw) state.settings = {...defaultSettings(), ...JSON.parse(raw)};
+        }catch{}
+      }
+      function saveSettings(){
+        localStorage.setItem(KEYS.settings, JSON.stringify(state.settings));
+      }
+      function loadRecent(){
+        try{
+          const raw = localStorage.getItem(KEYS.recent);
+          state.recent = raw ? JSON.parse(raw) : [];
+        }catch{ state.recent = []; }
+      }
+      function saveRecent(){
+        localStorage.setItem(KEYS.recent, JSON.stringify(state.recent.slice(0, 12)));
+      }
+
+      function pushRecent(item){
+        // item: {type:'file'|'app', label, sub, payload}
+        state.recent = [item, ...state.recent.filter(x => JSON.stringify(x.payload) !== JSON.stringify(item.payload) || x.type !== item.type)].slice(0, 12);
+        saveRecent();
+        renderStartRecent();
+      }
+
+      // ---------- filesystem (tiny, localStorage-backed) ----------
+      // Node:
+      // dir: {t:'d', c:{name:node}, created, modified}
+      // file: {t:'f', mime, data, created, modified}
+      const fs = {
+        root: null,
+
+        defaultTree(){
+          const t = (data) => ({t:"f", mime:"text/plain", data, created: now(), modified: now()});
+          const d = (children={}) => ({t:"d", c: children, created: now(), modified: now()});
+          return d({
+            Desktop: d({
+              "Welcome.txt": t(
+`Welcome to NebulaOS ✨
+
+Try:
+• Meta key → Start menu
+• Ctrl+Space → Spotlight
+• Alt+Tab → switch windows
+• Right-click the desktop → create files/folders
+
+Apps:
+• Files: a tiny persistent filesystem (localStorage)
+• Editor: Markdown-ish preview
+• Terminal: 'help' for commands
+• Browser: nebula://home, or open in new tab
+`)
+            }),
+            Documents: d({}),
+            Downloads: d({}),
+            Pictures: d({}),
+            Music: d({}),
+            Trash: d({})
+          });
+        },
+
+        load(){
+          try{
+            const raw = localStorage.getItem(KEYS.fs);
+            this.root = raw ? JSON.parse(raw) : null;
+          }catch{ this.root = null; }
+          if (!this.root || this.root.t !== "d") this.root = this.defaultTree();
+          this.save();
+        },
+
+        save(){
+          localStorage.setItem(KEYS.fs, JSON.stringify(this.root));
+        },
+
+        norm(path){
+          if (!path) return "/";
+          let p = String(path).replace(/\\/g,"/").trim();
+          if (!p.startsWith("/")) p = "/" + p;
+          p = p.replace(/\/+/g,"/");
+          if (p.length > 1 && p.endsWith("/")) p = p.slice(0, -1);
+          // resolve . and ..
+          const parts = [];
+          for (const seg of p.split("/")){
+            if (!seg || seg === ".") continue;
+            if (seg === "..") parts.pop();
+            else parts.push(seg);
+          }
+          return "/" + parts.join("/");
+        },
+
+        split(path){
+          const p = this.norm(path);
+          if (p === "/") return [];
+          return p.slice(1).split("/");
+        },
+
+        _getParent(path){
+          const p = this.norm(path);
+          if (p === "/") return {parent: null, name: "", node: this.root, path:"/"};
+          const parts = this.split(p);
+          const name = parts.pop();
+          let node = this.root;
+          for (const seg of parts){
+            if (!node || node.t !== "d" || !node.c[seg]) return null;
+            node = node.c[seg];
+          }
+          return {parent: node, name, node: node?.c?.[name] ?? null, path: "/" + parts.join("/")};
+        },
+
+        stat(path){
+          const p = this.norm(path);
+          if (p === "/") return {path:"/", node:this.root};
+          const g = this._getParent(p);
+          if (!g || !g.node) return null;
+          return {path:p, node:g.node};
+        },
+
+        list(path){
+          const s = this.stat(path);
+          if (!s || s.node.t !== "d") return null;
+          const out = [];
+          for (const [name, node] of Object.entries(s.node.c)){
+            out.push({name, node, path: this.norm(path + "/" + name)});
+          }
+          out.sort((a,b) => (a.node.t === b.node.t ? a.name.localeCompare(b.name) : (a.node.t === "d" ? -1 : 1)));
+          return out;
+        },
+
+        mkdir(path){
+          const p = this.norm(path);
+          const g = this._getParent(p);
+          if (!g || !g.parent || g.parent.t !== "d") throw new Error("Invalid path");
+          if (g.parent.c[g.name]) throw new Error("Already exists");
+          g.parent.c[g.name] = {t:"d", c:{}, created: now(), modified: now()};
+          g.parent.modified = now();
+          this.save();
+        },
+
+        write(path, data, mime="text/plain"){
+          const p = this.norm(path);
+          const g = this._getParent(p);
+          if (!g || !g.parent || g.parent.t !== "d") throw new Error("Invalid path");
+          const existing = g.parent.c[g.name];
+          if (existing && existing.t === "d") throw new Error("Is a directory");
+          const node = existing && existing.t === "f" ? existing : {t:"f", created: now()};
+          node.mime = mime;
+          node.data = data;
+          node.modified = now();
+          g.parent.c[g.name] = node;
+          g.parent.modified = now();
+          this.save();
+        },
+
+        read(path){
+          const s = this.stat(path);
+          if (!s || s.node.t !== "f") return null;
+          return s.node.data;
+        },
+
+        remove(path){
+          // move to Trash with metadata
+          const p = this.norm(path);
+          if (p === "/" || p === "/Trash") throw new Error("Nope");
+          const g = this._getParent(p);
+          if (!g || !g.parent || !g.node) throw new Error("Not found");
+          const name = g.name;
+          const node = g.node;
+
+          // remove from parent
+          delete g.parent.c[name];
+          g.parent.modified = now();
+
+          // store in /Trash as unique key
+          const trashKey = `${name} • ${new Date().toLocaleString()}`;
+          const trash = this.stat("/Trash")?.node;
+          if (!trash || trash.t !== "d") throw new Error("Trash missing");
+          trash.c[trashKey] = { ...node, trash: {from: p, deletedAt: now()} };
+          trash.modified = now();
+          this.save();
+          return trashKey;
+        },
+
+        rename(path, newName){
+          const p = this.norm(path);
+          const g = this._getParent(p);
+          if (!g || !g.parent || !g.node) throw new Error("Not found");
+          if (!newName || /[\\/]/.test(newName)) throw new Error("Invalid name");
+          if (g.parent.c[newName]) throw new Error("Name already exists");
+          g.parent.c[newName] = g.node;
+          delete g.parent.c[g.name];
+          g.parent.modified = now();
+          this.save();
+          return this.norm(g.path + "/" + newName);
+        },
+
+        ensureUniqueName(dirPath, baseName){
+          const dir = this.stat(dirPath)?.node;
+          if (!dir || dir.t !== "d") throw new Error("Not a directory");
+          let name = baseName;
+          if (!dir.c[name]) return name;
+          const extIdx = baseName.lastIndexOf(".");
+          const stem = extIdx > 0 ? baseName.slice(0, extIdx) : baseName;
+          const ext = extIdx > 0 ? baseName.slice(extIdx) : "";
+          let i = 2;
+          while (dir.c[`${stem} (${i})${ext}`]) i++;
+          return `${stem} (${i})${ext}`;
+        }
+      };
+
+      // ---------- notifications ----------
+      function formatTime(ts){
+        const d = new Date(ts);
+        const opts = {hour: "2-digit", minute:"2-digit"};
+        if (state.settings.clock24) opts.hour12 = false;
+        return d.toLocaleTimeString([], opts);
+      }
+
+      function notify(title, body, opts = {}){
+        const item = {
+          id: uid(),
+          title: String(title ?? "Notification"),
+          body: String(body ?? ""),
+          ts: now(),
+          level: opts.level ?? "info"
+        };
+        state.notifications.unshift(item);
+        renderNotifCount();
+        renderNotifCenter();
+
+        if (!state.settings.dnd){
+          const toast = el("div", {class:"toast"},
+            iconNode(Icons.bell),
+            el("div", {class:"tmeta"},
+              el("div", {class:"ttitle"}, item.title),
+              el("div", {class:"tbody"}, item.body)
+            ),
+            el("button", {class:"x", title:"Dismiss", onclick: () => toast.remove()}, el("span",{html:Icons.x}))
+          );
+          dom.toastArea.appendChild(toast);
+          setTimeout(() => { toast.style.animation = `none`; toast.style.opacity = "0"; toast.style.transform = "translateY(8px)"; setTimeout(()=>toast.remove(), 180); }, clamp(opts.duration ?? 4200, 1200, 9000));
+        }
+      }
+
+      function clearNotifs(){
+        state.notifications = [];
+        renderNotifCount();
+        renderNotifCenter();
+      }
+
+      function renderNotifCount(){
+        dom.notifCount.textContent = String(state.notifications.length);
+      }
+
+      function renderNotifCenter(){
+        dom.notifList.innerHTML = "";
+        if (state.notifications.length === 0){
+          dom.notifList.appendChild(el("div", {class:"dropzone", style:"margin:0;"},
+            "All clear. 🫧\n\nTip: Do Not Disturb silences toasts but keeps history here."
+          ));
+          return;
+        }
+        for (const n of state.notifications){
+          const row = el("div", {class:"notif"},
+            iconNode(Icons.bell),
+            el("div", {class:"nmeta"},
+              el("div", {class:"ntitle"}, n.title),
+              el("div", {class:"nbody"}, n.body)
+            ),
+            el("div", {class:"ntime"}, formatTime(n.ts)),
+            el("button", {class:"close", title:"Dismiss", onclick: () => {
+              state.notifications = state.notifications.filter(x => x.id !== n.id);
+              renderNotifCount();
+              renderNotifCenter();
+            }}, el("span",{html:Icons.x}))
+          );
+          dom.notifList.appendChild(row);
+        }
+      }
+
+      // ---------- dialog ----------
+      function dialog({title="Confirm", message="", input=false, placeholder="", value="", okText="OK", cancelText="Cancel", danger=false}){
+        return new Promise((resolve) => {
+          dom.dlgTitle.textContent = title;
+          dom.dlgBody.innerHTML = `<div>${escHtml(message).replace(/\n/g,"<br/>")}</div>`;
+          let inp = null;
+          if (input){
+            inp = el("input", {type:"text", placeholder, value});
+            dom.dlgBody.appendChild(inp);
+            setTimeout(()=>inp.focus(), 0);
+          }
+          dom.dlgOk.textContent = okText;
+          dom.dlgCancel.textContent = cancelText;
+          dom.dlgOk.classList.toggle("danger", !!danger);
+
+          const done = (ok) => {
+            dom.dialogOverlay.classList.remove("show");
+            dom.dialogOverlay.setAttribute("aria-hidden","true");
+            dom.dlgOk.removeEventListener("click", okFn);
+            dom.dlgCancel.removeEventListener("click", cancelFn);
+            document.removeEventListener("keydown", keyFn, true);
+            resolve({ok, value: inp ? inp.value : null});
+          };
+
+          const okFn = () => done(true);
+          const cancelFn = () => done(false);
+          const keyFn = (e) => {
+            if (e.key === "Escape"){ e.preventDefault(); done(false); }
+            if (e.key === "Enter" && dom.dialogOverlay.classList.contains("show")){ e.preventDefault(); done(true); }
+          };
+
+          dom.dlgOk.addEventListener("click", okFn);
+          dom.dlgCancel.addEventListener("click", cancelFn);
+          document.addEventListener("keydown", keyFn, true);
+          dom.dialogOverlay.classList.add("show");
+          dom.dialogOverlay.setAttribute("aria-hidden","false");
+        });
+      }
+
+      // ---------- settings apply ----------
+      function applySettings(){
+        // theme
+        let theme = state.settings.theme;
+        if (theme === "auto"){
+          const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+          theme = prefersDark ? "dark" : "light";
+        }
+        document.documentElement.dataset.theme = theme;
+
+        // accent
+        document.documentElement.style.setProperty("--accent", state.settings.accent);
+
+        // wallpaper
+        document.documentElement.dataset.wallpaper = state.settings.wallpaper;
+
+        // reduce motion
+        document.body.dataset.reduceMotion = state.settings.reduceMotion ? "true" : "false";
+
+        // tags
+        dom.tagTheme.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
+        dom.tagDnd.textContent = state.settings.dnd ? "DND on" : "DND off";
+
+        // quick settings reflect
+        dom.togDark.classList.toggle("on", theme === "dark");
+        dom.togDnd.classList.toggle("on", !!state.settings.dnd);
+        dom.togMotion.classList.toggle("on", !!state.settings.reduceMotion);
+        dom.tog24h.classList.toggle("on", !!state.settings.clock24);
+        dom.accentPicker.value = state.settings.accent;
+        dom.volRange.value = String(state.settings.volume);
+        renderWallGrid();
+        saveSettings();
+      }
+
+      function renderWallGrid(){
+        const walls = ["aurora","midnight","sunrise","paper","grid"];
+        dom.wallGrid.innerHTML = "";
+        for (const w of walls){
+          const tile = el("div", {class:"wall", "data-wall": w, title: w[0].toUpperCase()+w.slice(1)});
+          tile.classList.toggle("active", state.settings.wallpaper === w);
+          tile.addEventListener("click", () => {
+            state.settings.wallpaper = w;
+            applySettings();
+            notify("Wallpaper updated", `Switched to “${w}”.`);
+          });
+          dom.wallGrid.appendChild(tile);
+        }
+      }
+
+      // ---------- UI: panels ----------
+      const panels = {
+        hideAll(except = null){
+          for (const id of ["startMenu","quickSettings","notifCenter"]){
+            if (except === id) continue;
+            dom[id].classList.add("hidden");
+          }
+        },
+        toggle(id){
+          const open = !dom[id].classList.contains("hidden");
+          this.hideAll(open ? null : id);
+          dom[id].classList.toggle("hidden", open);
+        },
+        close(id){ dom[id].classList.add("hidden"); }
+      };
+
+      function within(elm, sel){ return elm && (elm.matches(sel) || elm.closest(sel)); }
+
+      // ---------- window manager ----------
+      function desktopBounds(){
+        const r = dom.wins.getBoundingClientRect();
+        return {x:0, y:0, w: r.width, h: r.height};
+      }
+
+      function focusWindow(id){
+        const win = state.windows.get(id);
+        if (!win) return;
+        state.focused = id;
+        state.z += 1;
+        win.el.style.zIndex = String(state.z);
+        for (const w of state.windows.values()) w.el.classList.toggle("active", w.id === id);
+        renderTaskbar();
+      }
+
+      function setWinRect(win, rect){
+        const b = desktopBounds();
+        const minW = win.minW ?? 280;
+        const minH = win.minH ?? 180;
+
+        let x = rect.x, y = rect.y, w = rect.w, h = rect.h;
+        w = Math.max(minW, w);
+        h = Math.max(minH, h);
+
+        x = clamp(x, 0, Math.max(0, b.w - w));
+        y = clamp(y, 0, Math.max(0, b.h - h));
+
+        win.rect = {x,y,w,h};
+        win.el.style.left = x + "px";
+        win.el.style.top = y + "px";
+        win.el.style.width = w + "px";
+        win.el.style.height = h + "px";
+      }
+
+      function cascadeRect(w=720,h=480){
+        const b = desktopBounds();
+        const t = now();
+        if (t - state.lastCascade > 2000) state.lastCascade = t;
+        const offset = ((state.nextWin-1) % 8) * 22;
+        const x = clamp(48 + offset, 0, Math.max(0, b.w - w - 12));
+        const y = clamp(34 + offset, 0, Math.max(0, b.h - h - 12));
+        return {x,y,w: Math.min(w, b.w - 20), h: Math.min(h, b.h - 20)};
+      }
+
+      function createWindow({appId, title, subtitle="", icon, width=720, height=480, resizable=true, content, minW=280, minH=180}){
+        const id = "w" + (state.nextWin++);
+        const win = {
+          id, appId, title, subtitle, icon,
+          minimized: false,
+          maximized: false,
+          prevRect: null,
+          minW, minH,
+          rect: cascadeRect(width, height),
+          el: null,
+          setTitle(t, sub=""){
+            win.title = t;
+            win.subtitle = sub;
+            win.titleEl.textContent = t;
+            win.subtitleEl.textContent = sub;
+            renderTaskbar();
+          }
+        };
+
+        const titleEl = el("div", {class:"title"}, title);
+        const subtitleEl = el("div", {class:"subtitle"}, subtitle);
+
+        const winEl = el("div", {class:"window", "data-id": id, role:"group", "aria-label": title},
+          el("div", {class:"titlebar"},
+            el("div", {class:"left"},
+              el("div", {class:"app-ico", html: icon ?? Icons.dot}),
+              el("div", {class:"tstack"}, titleEl, subtitleEl)
+            ),
+            el("div", {class:"actions"},
+              el("button", {class:"win-btn", title:"Minimize", onclick: (e) => { e.stopPropagation(); minimizeWindow(id); }}, el("span",{html:Icons.min})),
+              el("button", {class:"win-btn", title:"Maximize", onclick: (e) => { e.stopPropagation(); toggleMaximize(id); }}, el("span",{html:Icons.max})),
+              el("button", {class:"win-btn close", title:"Close", onclick: (e) => { e.stopPropagation(); closeWindow(id); }}, el("span",{html:Icons.x}))
+            )
+          ),
+          el("div", {class:"content"})
+        );
+
+        const contentHost = winEl.querySelector(".content");
+        contentHost.appendChild(content);
+
+        if (resizable){
+          ["n","s","e","w","ne","nw","se","sw"].forEach(dir => {
+            winEl.appendChild(el("div", {class:`resizer r-${dir}`, "data-dir": dir}));
+          });
+        }
+
+        dom.wins.appendChild(winEl);
+        win.el = winEl;
+        win.titleEl = titleEl;
+        win.subtitleEl = subtitleEl;
+
+        setWinRect(win, win.rect);
+
+        state.windows.set(id, win);
+        focusWindow(id);
+        wireWindowInteractions(win);
+        renderTaskbar();
+
+        notify("Opened", `${title}`, {duration: 1800});
+        return win;
+      }
+
+      function minimizeWindow(id){
+        const win = state.windows.get(id);
+        if (!win) return;
+        win.minimized = true;
+        win.el.style.display = "none";
+        if (state.focused === id){
+          // focus next topmost
+          const ids = Array.from(state.windows.values()).filter(w => !w.minimized).sort((a,b) => (parseInt(a.el.style.zIndex||"0") - parseInt(b.el.style.zIndex||"0")));
+          const top = ids[ids.length - 1];
+          state.focused = top ? top.id : null;
+          if (top) focusWindow(top.id);
+        }
+        renderTaskbar();
+      }
+
+      function restoreWindow(id){
+        const win = state.windows.get(id);
+        if (!win) return;
+        win.minimized = false;
+        win.el.style.display = "";
+        focusWindow(id);
+      }
+
+      function closeWindow(id){
+        const win = state.windows.get(id);
+        if (!win) return;
+        win.el.classList.add("closing");
+        setTimeout(() => {
+          win.el.remove();
+          state.windows.delete(id);
+          if (state.focused === id) state.focused = null;
+          renderTaskbar();
+        }, state.settings.reduceMotion ? 0 : 170);
+      }
+
+      function toggleMaximize(id){
+        const win = state.windows.get(id);
+        if (!win) return;
+        const b = desktopBounds();
+        if (!win.maximized){
+          win.prevRect = {...win.rect};
+          win.maximized = true;
+          win.el.classList.add("maximized");
+          setWinRect(win, {x: 0, y: 0, w: b.w, h: b.h});
+          win.el.querySelector(".actions .win-btn:nth-child(2) span").innerHTML = Icons.restore;
+        }else{
+          win.maximized = false;
+          win.el.classList.remove("maximized");
+          setWinRect(win, win.prevRect || cascadeRect(720,480));
+          win.prevRect = null;
+          win.el.querySelector(".actions .win-btn:nth-child(2) span").innerHTML = Icons.max;
+        }
+        focusWindow(id);
+      }
+
+      function wireWindowInteractions(win){
+        const titlebar = win.el.querySelector(".titlebar");
+        const content = win.el.querySelector(".content");
+        const resizers = $$(".resizer", win.el);
+
+        win.el.addEventListener("pointerdown", (e) => {
+          if (e.button !== 0) return;
+          focusWindow(win.id);
+        });
+
+        // Double click titlebar to maximize
+        titlebar.addEventListener("dblclick", (e) => {
+          e.preventDefault();
+          toggleMaximize(win.id);
+        });
+
+        // Dragging
+        titlebar.addEventListener("pointerdown", (e) => {
+          if (e.button !== 0) return;
+          if (within(e.target, ".win-btn")) return;
+
+          focusWindow(win.id);
+          if (win.maximized){
+            // unmaximize keeping pointer position
+            const b = desktopBounds();
+            const pctX = (e.clientX - win.el.getBoundingClientRect().left) / win.el.getBoundingClientRect().width;
+            toggleMaximize(win.id);
+            const w = win.rect.w;
+            const x = clamp(e.clientX - b.x - pctX*w, 0, Math.max(0, b.w - w));
+            setWinRect(win, {x, y: win.rect.y, w: win.rect.w, h: win.rect.h});
+          }
+
+          const start = {x: e.clientX, y: e.clientY};
+          const startRect = {...win.rect};
+          win.el.classList.add("dragging");
+          titlebar.setPointerCapture(e.pointerId);
+
+          let snap = null;
+          const preview = dom.snapPreview;
+
+          const calcSnap = (cx, cy) => {
+            const b = desktopBounds();
+            const margin = 18;
+            const nearL = cx <= margin;
+            const nearR = cx >= b.w - margin;
+            const nearT = cy <= margin;
+            const nearB = cy >= b.h - margin;
+
+            // corners = quarters
+            if (nearT && nearL) return {x:0,y:0,w:b.w/2,h:b.h/2};
+            if (nearT && nearR) return {x:b.w/2,y:0,w:b.w/2,h:b.h/2};
+            if (nearB && nearL) return {x:0,y:b.h/2,w:b.w/2,h:b.h/2};
+            if (nearB && nearR) return {x:b.w/2,y:b.h/2,w:b.w/2,h:b.h/2};
+
+            if (nearT) return {x:0,y:0,w:b.w,h:b.h};
+            if (nearL) return {x:0,y:0,w:b.w/2,h:b.h};
+            if (nearR) return {x:b.w/2,y:0,w:b.w/2,h:b.h};
+            return null;
+          };
+
+          const move = (ev) => {
+            const dx = ev.clientX - start.x;
+            const dy = ev.clientY - start.y;
+            setWinRect(win, {x: startRect.x + dx, y: startRect.y + dy, w: startRect.w, h: startRect.h});
+
+            const b = desktopBounds();
+            const localX = ev.clientX - dom.wins.getBoundingClientRect().left;
+            const localY = ev.clientY - dom.wins.getBoundingClientRect().top;
+            snap = calcSnap(localX, localY);
+            if (snap){
+              preview.classList.add("show");
+              preview.style.left = snap.x + "px";
+              preview.style.top = snap.y + "px";
+              preview.style.width = snap.w + "px";
+              preview.style.height = snap.h + "px";
+            }else{
+              preview.classList.remove("show");
+            }
+          };
+
+          const up = (ev) => {
+            titlebar.releasePointerCapture(e.pointerId);
+            win.el.classList.remove("dragging");
+            preview.classList.remove("show");
+            titlebar.removeEventListener("pointermove", move);
+            titlebar.removeEventListener("pointerup", up);
+            titlebar.removeEventListener("pointercancel", up);
+
+            if (snap){
+              win.maximized = false;
+              win.el.classList.remove("maximized");
+              setWinRect(win, snap);
+              win.el.querySelector(".actions .win-btn:nth-child(2) span").innerHTML = Icons.max;
+              win.prevRect = null;
+            }
+          };
+
+          titlebar.addEventListener("pointermove", move);
+          titlebar.addEventListener("pointerup", up);
+          titlebar.addEventListener("pointercancel", up);
+        });
+
+        // Resizing
+        resizers.forEach(r => {
+          r.addEventListener("pointerdown", (e) => {
+            if (e.button !== 0) return;
+            if (win.maximized) return;
+
+            focusWindow(win.id);
+            const dir = r.dataset.dir;
+            const start = {x: e.clientX, y: e.clientY};
+            const startRect = {...win.rect};
+
+            r.setPointerCapture(e.pointerId);
+
+            const move = (ev) => {
+              const dx = ev.clientX - start.x;
+              const dy = ev.clientY - start.y;
+              let {x,y,w,h} = startRect;
+
+              const minW = win.minW ?? 280;
+              const minH = win.minH ?? 180;
+
+              if (dir.includes("e")) w = startRect.w + dx;
+              if (dir.includes("s")) h = startRect.h + dy;
+              if (dir.includes("w")) { w = startRect.w - dx; x = startRect.x + dx; }
+              if (dir.includes("n")) { h = startRect.h - dy; y = startRect.y + dy; }
+
+              // enforce mins with anchored edges
+              if (w < minW){
+                if (dir.includes("w")) x -= (minW - w);
+                w = minW;
+              }
+              if (h < minH){
+                if (dir.includes("n")) y -= (minH - h);
+                h = minH;
+              }
+
+              setWinRect(win, {x,y,w,h});
+            };
+
+            const up = () => {
+              r.releasePointerCapture(e.pointerId);
+              r.removeEventListener("pointermove", move);
+              r.removeEventListener("pointerup", up);
+              r.removeEventListener("pointercancel", up);
+            };
+
+            r.addEventListener("pointermove", move);
+            r.addEventListener("pointerup", up);
+            r.addEventListener("pointercancel", up);
+          });
+        });
+
+        // Prevent focus loss on content clicks while selecting text
+        content.addEventListener("pointerdown", () => focusWindow(win.id));
+      }
+
+      // ---------- context menu ----------
+      function showMenu(items, x, y){
+        dom.contextMenu.innerHTML = "";
+        for (const it of items){
+          if (it === "sep"){
+            dom.contextMenu.appendChild(el("div", {class:"menu-sep"}));
+            continue;
+          }
+          const row = el("div", {class:"menu-item" + (it.disabled ? " disabled" : "")},
+            it.icon ? el("span", {class:"icon", html: it.icon}) : el("span", {class:"icon", html: Icons.dot}),
+            el("div", {}, it.label),
+            it.right ? el("div", {class:"right"}, it.right) : null
+          );
+          row.addEventListener("click", () => {
+            hideMenu();
+            if (!it.disabled && typeof it.action === "function") it.action();
+          });
+          dom.contextMenu.appendChild(row);
+        }
+
+        dom.contextMenu.classList.remove("hidden");
+        const r = dom.contextMenu.getBoundingClientRect();
+        const vw = window.innerWidth, vh = window.innerHeight;
+        let left = x, top = y;
+        left = Math.min(left, vw - r.width - 8);
+        top = Math.min(top, vh - r.height - 8);
+        dom.contextMenu.style.left = left + "px";
+        dom.contextMenu.style.top = top + "px";
+      }
+      function hideMenu(){
+        dom.contextMenu.classList.add("hidden");
+      }
+
+      // ---------- apps ----------
+      const apps = {
+        files: {
+          id:"files",
+          name:"Files",
+          icon: Icons.folder,
+          open: (args={}) => openFiles(args.path ?? "/Desktop")
+        },
+        editor: {
+          id:"editor",
+          name:"Editor",
+          icon: Icons.edit,
+          open: (args={}) => openEditor(args.path ?? null)
+        },
+        terminal: {
+          id:"terminal",
+          name:"Terminal",
+          icon: Icons.term,
+          open: (args={}) => openTerminal(args.cwd ?? "/Desktop")
+        },
+        browser: {
+          id:"browser",
+          name:"Browser",
+          icon: Icons.web,
+          open: (args={}) => openBrowser(args.url ?? "nebula://home")
+        },
+        notes: {
+          id:"notes",
+          name:"Notes",
+          icon: Icons.note,
+          open: () => openNotes()
+        },
+        calculator: {
+          id:"calculator",
+          name:"Calculator",
+          icon: Icons.calc,
+          open: () => openCalculator()
+        },
+        media: {
+          id:"media",
+          name:"Media",
+          icon: Icons.music,
+          open: (args={}) => openMedia(args.path ?? null)
+        },
+        settings: {
+          id:"settings",
+          name:"Settings",
+          icon: Icons.gear,
+          open: () => openSettings()
+        },
+        about: {
+          id:"about",
+          name:"About",
+          icon: Icons.info,
+          open: () => openAbout()
+        }
+      };
+
+      function openApp(appId, args){
+        const app = apps[appId];
+        if (!app) return;
+        app.open(args || {});
+        pushRecent({type:"app", label: app.name, sub: "App", payload: {appId}});
+      }
+
+      function openFile(path){
+        const st = fs.stat(path);
+        if (!st) return notify("Not found", path);
+        if (st.node.t === "d") return openFiles(path);
+        const mime = st.node.mime || "text/plain";
+        if (mime.startsWith("image/")) return openImageViewer(path);
+        if (mime.startsWith("audio/")) return openMedia(path);
+        // default -> editor
+        openEditor(path);
+      }
+
+      // ---------- Files app ----------
+      function openFiles(startPath="/Desktop"){
+        let current = fs.norm(startPath);
+        let selection = null;
+
+        const toolbar = el("div", {class:"app-toolbar"},
+          el("button", {class:"btn", title:"New folder", onclick: async () => {
+            const r = await dialog({title:"New folder", message:`Create a folder in ${current}`, input:true, placeholder:"Folder name", okText:"Create"});
+            if (!r.ok) return;
+            try{
+              const name = r.value.trim();
+              fs.mkdir(fs.norm(current + "/" + name));
+              notify("Folder created", name);
+              render();
+              renderDesktopIcons();
+            }catch(err){
+              notify("Couldn't create folder", String(err.message || err), {level:"error"});
+            }
+          }}, iconNode(Icons.folder), "New folder"),
+          el("button", {class:"btn", title:"New text file", onclick: async () => {
+            const r = await dialog({title:"New text file", message:`Create a text file in ${current}`, input:true, placeholder:"Notes.txt", okText:"Create"});
+            if (!r.ok) return;
+            try{
+              let name = (r.value || "").trim();
+              if (!name) name = "Untitled.txt";
+              if (!name.includes(".")) name += ".txt";
+              name = fs.ensureUniqueName(current, name);
+              const path = fs.norm(current + "/" + name);
+              fs.write(path, "", "text/plain");
+              notify("File created", name);
+              render();
+              renderDesktopIcons();
+              openEditor(path);
+            }catch(err){
+              notify("Couldn't create file", String(err.message || err), {level:"error"});
+            }
+          }}, iconNode(Icons.file), "New file"),
+          el("button", {class:"btn", title:"Import (upload) file", onclick: () => {
+            fileInput.click();
+          }}, iconNode(Icons.upload), "Import"),
+          el("div", {class:"spacer"}),
+          el("input", {type:"text", value: current, title:"Path", onchange: (e) => {
+            const p = fs.norm(e.target.value);
+            if (fs.stat(p)?.node?.t === "d"){ current = p; selection = null; render(); }
+            else notify("Invalid folder", p);
+          }})
+        );
+
+        const fileInput = el("input", {type:"file", style:"display:none"});
+        fileInput.addEventListener("change", async () => {
+          const file = fileInput.files && fileInput.files[0];
+          fileInput.value = "";
+          if (!file) return;
+          if (file.size > 2_000_000){
+            notify("Too large", "This demo stores files in localStorage. Try a file under ~2MB.", {level:"warn"});
+            return;
+          }
+          const name = fs.ensureUniqueName(current, file.name || "import.dat");
+          const path = fs.norm(current + "/" + name);
+
+          try{
+            const data = await new Promise((res, rej) => {
+              const reader = new FileReader();
+              reader.onerror = () => rej(reader.error || new Error("Read error"));
+              if (file.type && !file.type.startsWith("text/")) reader.readAsDataURL(file);
+              else reader.readAsText(file);
+              reader.onload = () => res(reader.result);
+            });
+
+            if (typeof data === "string"){
+              fs.write(path, data, file.type || (data.startsWith("data:") ? "application/octet-stream" : "text/plain"));
+              notify("Imported", name);
+              render();
+              renderDesktopIcons();
+            }
+          }catch(err){
+            notify("Import failed", String(err.message || err), {level:"error"});
+          }
+        });
+
+        const side = el("div", {class:"side"},
+          el("div", {class:"section-title"}, "Places"),
+          el("div", {class:"nav"},
+            navItem("Desktop", "/Desktop", Icons.start),
+            navItem("Documents", "/Documents", Icons.folder),
+            navItem("Downloads", "/Downloads", Icons.download),
+            navItem("Pictures", "/Pictures", Icons.file),
+            navItem("Music", "/Music", Icons.music),
+            navItem("Trash", "/Trash", Icons.trash),
+          )
+        );
+
+        function navItem(label, path, icon){
+          const item = el("div", {class:"nav-item"},
+            el("span", {class:"icon", html: icon}),
+            el("div", {}, label)
+          );
+          item.addEventListener("click", () => {
+            current = fs.norm(path);
+            selection = null;
+            render();
+          });
+          item._path = path;
+          return item;
+        }
+
+        const main = el("div", {class:"main"});
+        const crumbs = el("div", {class:"crumbs"});
+        const grid = el("div", {class:"file-grid"});
+        const drop = el("div", {class:"dropzone"},
+          "Tip: Drag a file here to import.\n",
+          "Right-click items for actions."
+        );
+
+        main.appendChild(crumbs);
+        main.appendChild(grid);
+        main.appendChild(drop);
+
+        // Drag & drop import
+        main.addEventListener("dragover", (e) => { e.preventDefault(); drop.style.borderColor = "color-mix(in oklab, var(--accent) 60%, rgba(255,255,255,.18))"; });
+        main.addEventListener("dragleave", () => { drop.style.borderColor = ""; });
+        main.addEventListener("drop", async (e) => {
+          e.preventDefault();
+          drop.style.borderColor = "";
+          const file = e.dataTransfer?.files?.[0];
+          if (!file) return;
+          if (file.size > 2_000_000){
+            notify("Too large", "Try a file under ~2MB for this demo.", {level:"warn"});
+            return;
+          }
+          const name = fs.ensureUniqueName(current, file.name || "drop.dat");
+          const path = fs.norm(current + "/" + name);
+          try{
+            const data = await new Promise((res, rej) => {
+              const reader = new FileReader();
+              reader.onerror = () => rej(reader.error || new Error("Read error"));
+              if (file.type && !file.type.startsWith("text/")) reader.readAsDataURL(file);
+              else reader.readAsText(file);
+              reader.onload = () => res(reader.result);
+            });
+            fs.write(path, data, file.type || (String(data).startsWith("data:") ? "application/octet-stream" : "text/plain"));
+            notify("Imported", name);
+            render();
+            renderDesktopIcons();
+          }catch(err){
+            notify("Import failed", String(err.message || err), {level:"error"});
+          }
+        });
+
+        const appRoot = el("div", {class:"app"},
+          toolbar,
+          el("div", {class:"files"}, side, main)
+        );
+
+        const win = createWindow({
+          appId: "files",
+          title: "Files",
+          subtitle: current,
+          icon: Icons.folder,
+          width: 820,
+          height: 560,
+          resizable: true,
+          minW: 520,
+          minH: 360,
+          content: appRoot
+        });
+
+        function renderCrumbs(){
+          crumbs.innerHTML = "";
+          const parts = fs.split(current);
+          const add = (label, path) => {
+            const c = el("div", {class:"crumb"}, label);
+            c.addEventListener("click", () => {
+              current = path;
+              selection = null;
+              render();
+            });
+            crumbs.appendChild(c);
+          };
+          add("Root", "/");
+          let acc = "";
+          for (const p of parts){
+            acc += "/" + p;
+            crumbs.appendChild(el("div", {style:"color:var(--faint); font-size:12px;"}, "›"));
+            add(p, acc);
+          }
+        }
+
+        function renderList(){
+          grid.innerHTML = "";
+          const items = fs.list(current) || [];
+          // update subtitle
+          win.setTitle("Files", current);
+
+          // side active highlight
+          $$(".nav-item", side).forEach(n => n.classList.toggle("active", fs.norm(n._path || "") === current));
+
+          if (items.length === 0){
+            grid.appendChild(el("div", {class:"dropzone", style:"margin:0;"},
+              "This folder is empty.\n\nCreate a file or drag something in."
+            ));
+            return;
+          }
+
+          for (const it of items){
+            const isDir = it.node.t === "d";
+            const icon = isDir ? Icons.folder : (it.node.mime?.startsWith("audio/") ? Icons.music : (it.node.mime?.startsWith("image/") ? Icons.file : Icons.file));
+            const mod = it.node.modified ? new Date(it.node.modified).toLocaleString() : "—";
+            const row = el("div", {class:"file-row"},
+              el("div", {class:"fi", html: icon}),
+              el("div", {class:"name"}, it.name),
+              el("div", {class:"meta"}, mod)
+            );
+
+            row.addEventListener("click", () => {
+              selection = it;
+              $$(".file-row", grid).forEach(r => r.classList.remove("selected"));
+              row.classList.add("selected");
+            });
+            row.addEventListener("dblclick", () => {
+              if (isDir){
+                current = it.path;
+                selection = null;
+                render();
+              }else{
+                openFile(it.path);
+                pushRecent({type:"file", label: it.name, sub: it.path, payload: {path: it.path}});
+              }
+            });
+
+            row.addEventListener("contextmenu", (e) => {
+              e.preventDefault();
+              selection = it;
+              $$(".file-row", grid).forEach(r => r.classList.remove("selected"));
+              row.classList.add("selected");
+
+              showMenu([
+                {label: "Open", icon: Icons.start, action: () => {
+                  if (isDir) { current = it.path; render(); }
+                  else openFile(it.path);
+                }},
+                {label: "Rename…", icon: Icons.edit, action: async () => {
+                  const r = await dialog({title:"Rename", message:`Rename “${it.name}”`, input:true, value: it.name, okText:"Rename"});
+                  if (!r.ok) return;
+                  try{
+                    const newPath = fs.rename(it.path, r.value.trim());
+                    notify("Renamed", r.value.trim());
+                    if (current.startsWith("/Desktop")) renderDesktopIcons();
+                    render();
+                  }catch(err){
+                    notify("Rename failed", String(err.message || err), {level:"error"});
+                  }
+                }},
+                {label: "Delete to Trash", icon: Icons.trash, action: async () => {
+                  const r = await dialog({title:"Move to Trash?", message:`“${it.name}” will be moved to Trash.`, okText:"Move", danger:true});
+                  if (!r.ok) return;
+                  try{
+                    fs.remove(it.path);
+                    notify("Moved to Trash", it.name);
+                    renderDesktopIcons();
+                    render();
+                  }catch(err){
+                    notify("Delete failed", String(err.message || err), {level:"error"});
+                  }
+                }},
+                "sep",
+                {label: "Copy path", icon: Icons.file, action: async () => {
+                  try{
+                    await navigator.clipboard.writeText(it.path);
+                    notify("Copied", it.path, {duration: 1600});
+                  }catch{
+                    notify("Copy failed", "Clipboard permission denied.");
+                  }
+                }},
+              ], e.clientX, e.clientY);
+            });
+
+            grid.appendChild(row);
+          }
+        }
+
+        function render(){
+          renderCrumbs();
+          renderList();
+        }
+
+        render();
+        return win;
+      }
+
+      // ---------- Editor app ----------
+      function mdRender(text){
+        // Tiny, safe-ish markdown-ish renderer (no raw HTML)
+        const src = String(text ?? "");
+        const lines = src.split(/\r?\n/);
+        let out = "";
+        let inCode = false;
+        let codeBuf = [];
+        const flushCode = () => {
+          if (!inCode) return;
+          const code = escHtml(codeBuf.join("\n"));
+          out += `<pre><code>${code}</code></pre>`;
+          inCode = false;
+          codeBuf = [];
+        };
+
+        const inline = (s) => {
+          let t = escHtml(s);
+          // `code`
+          t = t.replace(/`([^`]+)`/g, (_, a) => `<code>${escHtml(a)}</code>`);
+          // links: [text](url)
+          t = t.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, txt, url) => `<a href="${escHtml(url)}" target="_blank" rel="noopener noreferrer">${escHtml(txt)}</a>`);
+          return t;
+        };
+
+        let listOpen = false;
+        const closeList = () => { if (listOpen){ out += `</ul>`; listOpen = false; } };
+
+        for (const line of lines){
+          if (line.trim().startsWith("```")){
+            if (inCode){ flushCode(); }
+            else { closeList(); inCode = true; codeBuf = []; }
+            continue;
+          }
+          if (inCode){ codeBuf.push(line); continue; }
+
+          const m1 = line.match(/^#\s+(.*)$/);
+          const m2 = line.match(/^##\s+(.*)$/);
+          const ml = line.match(/^\s*[-*]\s+(.*)$/);
+
+          if (m1){ closeList(); out += `<h1>${inline(m1[1])}</h1>`; continue; }
+          if (m2){ closeList(); out += `<h2>${inline(m2[1])}</h2>`; continue; }
+          if (ml){
+            if (!listOpen){ out += `<ul>`; listOpen = true; }
+            out += `<li>${inline(ml[1])}</li>`;
+            continue;
+          }
+          closeList();
+          if (line.trim() === ""){ out += `<p></p>`; continue; }
+          out += `<p>${inline(line)}</p>`;
+        }
+        closeList();
+        if (inCode) flushCode();
+        return `<div class="md">${out}</div>`;
+      }
+
+      function openEditor(path = null){
+        let filePath = path ? fs.norm(path) : null;
+        let dirty = false;
+        let previewOn = false;
+
+        const titleFromPath = () => filePath ? filePath.split("/").pop() : "Untitled";
+        const subtitle = () => filePath ? filePath : "Not saved yet";
+
+        const inputPath = el("input", {type:"text", value: filePath ?? "", placeholder:"(optional) /Documents/Notes.txt", title:"File path"});
+        const btnOpen = el("button", {class:"btn", onclick: async () => {
+          const p = fs.norm(inputPath.value.trim() || "");
+          if (!p || p === "/"){ notify("Open failed", "Enter a file path."); return; }
+          const st = fs.stat(p);
+          if (!st){ notify("Not found", p); return; }
+          if (st.node.t !== "f"){ notify("Not a file", p); return; }
+          filePath = p;
+          inputPath.value = p;
+          ta.value = String(st.node.data ?? "");
+          dirty = false;
+          win.setTitle("Editor — " + titleFromPath(), subtitle());
+          updatePreview();
+          pushRecent({type:"file", label: titleFromPath(), sub: filePath, payload: {path: filePath}});
+        }}, iconNode(Icons.folder), "Open");
+
+        const btnSave = el("button", {class:"btn", onclick: async () => {
+          if (!filePath){
+            const r = await dialog({title:"Save as", message:"Choose a path (e.g. /Documents/Notes.txt)", input:true, placeholder:"/Documents/Notes.txt", okText:"Save"});
+            if (!r.ok) return;
+            filePath = fs.norm(r.value.trim() || "");
+            inputPath.value = filePath;
+          }
+          try{
+            fs.write(filePath, ta.value, "text/plain");
+            dirty = false;
+            win.setTitle("Editor — " + titleFromPath(), subtitle());
+            notify("Saved", titleFromPath());
+            renderDesktopIcons();
+            pushRecent({type:"file", label: titleFromPath(), sub: filePath, payload: {path: filePath}});
+          }catch(err){
+            notify("Save failed", String(err.message || err), {level:"error"});
+          }
+        }}, iconNode(Icons.download), "Save");
+
+        const btnPreview = el("button", {class:"btn", onclick: () => {
+          previewOn = !previewOn;
+          root.classList.toggle("preview", previewOn);
+          btnPreview.innerHTML = previewOn ? `<span class="icon">${Icons.web}</span> Preview on` : `<span class="icon">${Icons.web}</span> Preview off`;
+          updatePreview();
+        }}, el("span", {class:"icon", html: Icons.web}), "Preview off");
+
+        const btnWrap = el("button", {class:"btn", onclick: () => {
+          const wrap = ta.style.whiteSpace !== "pre";
+          ta.style.whiteSpace = wrap ? "pre-wrap" : "pre";
+          btnWrap.innerHTML = wrap ? `<span class="icon">${Icons.dot}</span> Wrap on` : `<span class="icon">${Icons.dot}</span> Wrap off`;
+        }}, el("span",{class:"icon", html: Icons.dot}), "Wrap off");
+
+        const tb = el("div", {class:"app-toolbar"},
+          btnOpen,
+          btnSave,
+          btnPreview,
+          btnWrap,
+          el("div", {class:"spacer"}),
+          inputPath
+        );
+
+        const ta = el("textarea", {spellcheck:"false"});
+        const pane = el("div", {class:"previewPane"});
+        const split = el("div", {class:"split"}, ta, pane);
+
+        const root = el("div", {class:"app editor"}, tb, split);
+
+        const win = createWindow({
+          appId: "editor",
+          title: "Editor — " + titleFromPath(),
+          subtitle: subtitle(),
+          icon: Icons.edit,
+          width: 860,
+          height: 560,
+          resizable: true,
+          minW: 560,
+          minH: 380,
+          content: root
+        });
+
+        const updatePreview = () => {
+          if (!previewOn) { pane.innerHTML = `<div class="dropzone" style="margin:0;">Preview is off. Toggle it to see a Markdown-style render.</div>`; return; }
+          pane.innerHTML = mdRender(ta.value);
+        };
+
+        ta.addEventListener("input", () => {
+          dirty = true;
+          win.setTitle("Editor — " + titleFromPath() + " *", subtitle());
+          if (previewOn) updatePreview();
+        });
+
+        // Load file if provided
+        if (filePath){
+          const st = fs.stat(filePath);
+          if (st && st.node.t === "f") ta.value = String(st.node.data ?? "");
+        }
+        updatePreview();
+
+        // Warn on close if dirty
+        const origClose = closeWindow;
+        win.el.querySelector(".win-btn.close").onclick = async (e) => {
+          e.stopPropagation();
+          if (dirty){
+            const r = await dialog({title:"Discard changes?", message:"You have unsaved edits. Close anyway?", okText:"Close", danger:true});
+            if (!r.ok) return;
+          }
+          origClose(win.id);
+        };
+
+        return win;
+      }
+
+      // ---------- Terminal app ----------
+      function tokenize(line){
+        const out = [];
+        let cur = "", q = null;
+        for (let i=0; i<line.length; i++){
+          const ch = line[i];
+          if (q){
+            if (ch === q) { q = null; continue; }
+            cur += ch;
+          }else{
+            if (ch === "'" || ch === '"'){ q = ch; continue; }
+            if (/\s/.test(ch)){
+              if (cur){ out.push(cur); cur=""; }
+            }else cur += ch;
+          }
+        }
+        if (cur) out.push(cur);
+        return out;
+      }
+
+      function openTerminal(startCwd="/Desktop"){
+        let cwd = fs.norm(startCwd);
+
+        const out = el("div", {class:"term-out"});
+        const inp = el("input", {type:"text", spellcheck:"false", placeholder:"Type 'help'…"});
+
+        const root = el("div", {class:"terminal"},
+          out,
+          el("div", {class:"term-in"},
+            el("div", {class:"prompt"}, (isMac ? "nebula" : "nebula") + ":" + cwd + " $"),
+            inp
+          )
+        );
+
+        const win = createWindow({
+          appId:"terminal",
+          title:"Terminal",
+          subtitle: cwd,
+          icon: Icons.term,
+          width: 820,
+          height: 520,
+          resizable:true,
+          minW: 520,
+          minH: 320,
+          content: root
+        });
+
+        const print = (text, dim=false) => {
+          const line = el("div", {class:"term-line" + (dim ? " dim" : "")}, text);
+          out.appendChild(line);
+          out.scrollTop = out.scrollHeight;
+        };
+
+        const setPrompt = () => {
+          root.querySelector(".prompt").textContent = (isMac ? "nebula" : "nebula") + ":" + cwd + " $";
+          win.setTitle("Terminal", cwd);
+        };
+
+        print("NebulaOS Terminal — type 'help' for commands.", true);
+
+        const helpText =
+`Commands:
+  help                 show this
+  ls [path]            list directory
+  cd <path>            change directory
+  pwd                  print current directory
+  cat <file>           print file contents
+  touch <file>         create empty file
+  mkdir <dir>          create folder
+  rm <path>            move file/folder to Trash
+  open <path|app>      open file, folder, or app (e.g. open /Desktop/Welcome.txt)
+  theme <dark|light|auto>
+  notify <title> [body]
+  clear                clear terminal`;
+
+        function resolve(p){
+          if (!p) return cwd;
+          if (p.startsWith("/")) return fs.norm(p);
+          return fs.norm(cwd + "/" + p);
+        }
+
+        async function run(cmdline){
+          const line = cmdline.trim();
+          if (!line) return;
+          print(`$ ${line}`, true);
+
+          const args = tokenize(line);
+          const cmd = (args.shift() || "").toLowerCase();
+
+          try{
+            if (cmd === "help"){
+              print(helpText);
+            } else if (cmd === "pwd"){
+              print(cwd);
+            } else if (cmd === "ls"){
+              const p = resolve(args[0] || ".");
+              const items = fs.list(p);
+              if (!items) throw new Error("Not a directory: " + p);
+              const names = items.map(it => (it.node.t === "d" ? it.name + "/" : it.name));
+              print(names.join("  ") || "(empty)");
+            } else if (cmd === "cd"){
+              const p = resolve(args[0] || "/");
+              const st = fs.stat(p);
+              if (!st || st.node.t !== "d") throw new Error("Not a directory: " + p);
+              cwd = p;
+              setPrompt();
+            } else if (cmd === "cat"){
+              const p = resolve(args[0]);
+              const st = fs.stat(p);
+              if (!st || st.node.t !== "f") throw new Error("Not a file: " + p);
+              const data = String(st.node.data ?? "");
+              print(data || "(empty)");
+            } else if (cmd === "touch"){
+              const p = resolve(args[0] || "Untitled.txt");
+              fs.write(p, "", "text/plain");
+              print("created: " + p);
+              renderDesktopIcons();
+            } else if (cmd === "mkdir"){
+              const p = resolve(args[0] || "New Folder");
+              fs.mkdir(p);
+              print("created: " + p + "/");
+              renderDesktopIcons();
+            } else if (cmd === "rm"){
+              const p = resolve(args[0]);
+              fs.remove(p);
+              print("moved to Trash: " + p);
+              renderDesktopIcons();
+            } else if (cmd === "open"){
+              const target = args[0];
+              if (!target) throw new Error("Usage: open <path|app>");
+              const p = target.startsWith("/") ? fs.norm(target) : null;
+              if (p && fs.stat(p)){
+                const st = fs.stat(p);
+                if (st.node.t === "d") openFiles(p);
+                else openFile(p);
+              }else if (apps[target]){
+                openApp(target);
+              }else{
+                // try path relative
+                const rp = resolve(target);
+                if (fs.stat(rp)){
+                  const st = fs.stat(rp);
+                  if (st.node.t === "d") openFiles(rp);
+                  else openFile(rp);
+                } else {
+                  throw new Error("Not found: " + target);
+                }
+              }
+            } else if (cmd === "theme"){
+              const t = (args[0] || "").toLowerCase();
+              if (!["dark","light","auto"].includes(t)) throw new Error("theme must be dark|light|auto");
+              state.settings.theme = t;
+              applySettings();
+              print("theme set to " + t);
+            } else if (cmd === "notify"){
+              const title = args[0] || "Hello";
+              const body = args.slice(1).join(" ") || "NebulaOS notification";
+              notify(title, body);
+              print("sent notification.");
+            } else if (cmd === "clear"){
+              out.innerHTML = "";
+            } else {
+              print(`Unknown command: ${cmd}. Try 'help'.`);
+            }
+          }catch(err){
+            print("Error: " + (err.message || String(err)));
+          }
+        }
+
+        inp.addEventListener("keydown", (e) => {
+          if (e.key === "Enter"){
+            const v = inp.value;
+            inp.value = "";
+            run(v);
+          }
+        });
+
+        setTimeout(() => inp.focus(), 0);
+        return win;
+      }
+
+      // ---------- Browser app ----------
+      function openBrowser(url="nebula://home"){
+        const addr = el("input", {type:"text", value: url, spellcheck:"false"});
+        const btnGo = el("button", {class:"btn", title:"Go", onclick: () => go(addr.value)}, iconNode(Icons.search), "Go");
+        const btnNew = el("button", {class:"btn", title:"Open in new tab", onclick: () => {
+          const u = normalizeUrl(addr.value);
+          window.open(u, "_blank", "noopener,noreferrer");
+        }}, iconNode(Icons.web), "New tab");
+
+        const iframe = el("iframe", {
+          sandbox: "allow-scripts allow-forms allow-popups allow-downloads allow-top-navigation-by-user-activation",
+          referrerpolicy: "no-referrer"
+        });
+
+        const overlay = el("div", {class:"overlay"},
+          el("div", {class:"card"},
+            el("h3", {}, "If the page doesn’t load…"),
+            el("p", {}, "Some sites block embedding in iframes. Use “New tab” to open it normally, or try Nebula’s internal pages like nebula://home."),
+            el("div", {style:"display:flex; gap:10px; align-items:center;"},
+              el("button", {class:"mini-btn", onclick: () => window.open(normalizeUrl(addr.value), "_blank", "noopener,noreferrer")}, iconNode(Icons.web), "Open in new tab"),
+              el("button", {class:"mini-btn", onclick: () => { addr.value = "nebula://home"; go(addr.value); overlay.classList.remove("show"); }}, iconNode(Icons.start), "Go to Home")
+            )
+          )
+        );
+
+        const view = el("div", {class:"view"}, iframe, overlay);
+        const bar = el("div", {class:"bar"}, iconNode(Icons.web), addr, btnGo, btnNew);
+        const root = el("div", {class:"browser"}, bar, view);
+
+        const win = createWindow({
+          appId:"browser",
+          title:"Browser",
+          subtitle: url,
+          icon: Icons.web,
+          width: 920,
+          height: 600,
+          resizable:true,
+          minW: 560,
+          minH: 360,
+          content: root
+        });
+
+        function normalizeUrl(raw){
+          let v = String(raw || "").trim();
+          if (v.startsWith("nebula://")) return v;
+          if (!/^https?:\/\//i.test(v)){
+            // treat as search
+            const q = encodeURIComponent(v);
+            return "https://duckduckgo.com/?q=" + q;
+          }
+          return v;
+        }
+
+        function setInternal(page){
+          if (page === "nebula://home"){
+            const html =
+`<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#eaf0ff;background:linear-gradient(180deg,#0b0e14,#070913);padding:18px;}
+  .hero{border-radius:18px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);padding:14px;box-shadow:0 20px 60px rgba(0,0,0,.45);}
+  h1{margin:0 0 6px;font-size:18px;letter-spacing:.2px;}
+  p{margin:0;color:rgba(255,255,255,.75);line-height:1.45;font-size:13px;}
+  .grid{margin-top:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+  .card{border-radius:16px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);padding:12px;}
+  .card h3{margin:0 0 6px;font-size:13px;}
+  .card a{color:#9ad0ff;text-decoration:none;font-weight:700}
+  .card a:hover{text-decoration:underline}
+  .kbd{display:flex;flex-wrap:wrap;gap:6px;color:rgba(255,255,255,.75);font-size:12px}
+  .tag{padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#fff;font-weight:700;font-size:11px}
+</style>
+</head>
+<body>
+  <div class="hero">
+    <h1>nebula://home</h1>
+    <p>Welcome. This “browser” supports internal pages and can open external sites (some may block embedding; use New tab).</p>
+    <div class="grid">
+      <div class="card">
+        <h3>Internal pages</h3>
+        <p><a href="nebula://home">nebula://home</a><br/><a href="nebula://help">nebula://help</a></p>
+      </div>
+      <div class="card">
+        <h3>Keyboard</h3>
+        <div class="kbd">
+          <span class="tag">Ctrl+Space</span>
+          <span class="tag">Alt+Tab</span>
+          <span class="tag">Meta</span>
+          <span class="tag">Esc</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+            iframe.srcdoc = html;
+            return;
+          }
+          if (page === "nebula://help"){
+            const html =
+`<!doctype html>
+<html>
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#eaf0ff;background:linear-gradient(180deg,#0b0e14,#070913);padding:18px;}
+ .card{border-radius:18px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);padding:14px;box-shadow:0 20px 60px rgba(0,0,0,.45);}
+ h1{margin:0 0 6px;font-size:18px}
+ p{margin:0 0 10px;color:rgba(255,255,255,.75);line-height:1.45;font-size:13px}
+ ul{margin:0 0 0 18px;color:rgba(255,255,255,.75);line-height:1.55;font-size:13px}
+ code{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);padding:1px 6px;border-radius:10px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>nebula://help</h1>
+    <p>Tips:</p>
+    <ul>
+      <li>Right-click desktop for new files/folders.</li>
+      <li>Files persist in <code>localStorage</code> (so keep imports small).</li>
+      <li>Terminal has <code>help</code>, and can <code>open</code> paths or apps.</li>
+      <li>Spotlight searches apps/files/actions.</li>
+    </ul>
+  </div>
+</body>
+</html>`;
+            iframe.srcdoc = html;
+            return;
+          }
+          iframe.srcdoc = `<div style="padding:16px;font-family:system-ui">Unknown internal page.</div>`;
+        }
+
+        function go(raw){
+          const v = String(raw || "").trim();
+          addr.value = v;
+          const u = normalizeUrl(v);
+          win.setTitle("Browser", u);
+          overlay.classList.remove("show");
+
+          if (u.startsWith("nebula://")){
+            setInternal(u);
+            return;
+          }
+
+          // attempt embed; show overlay hint after a moment
+          iframe.srcdoc = "";
+          iframe.src = u;
+          setTimeout(() => {
+            // can't reliably detect frame blocking due to cross-origin
+            overlay.classList.add("show");
+          }, 1200);
+        }
+
+        addr.addEventListener("keydown", (e) => { if (e.key === "Enter") go(addr.value); });
+
+        go(url);
+        return win;
+      }
+
+      // ---------- Calculator app ----------
+      function safeEval(expr){
+        const s = String(expr).trim();
+        if (!s) return {ok:true, value:"0"};
+        // allow digits, ops, parentheses, decimal, percent, spaces
+        if (!/^[0-9+\-*/().%\s]+$/.test(s)) return {ok:false, error:"Invalid characters"};
+        // percent: convert "50%" to "(50/100)"
+        const p = s.replace(/(\d+(?:\.\d+)?)\s*%/g, "($1/100)");
+        try{
+          // eslint-disable-next-line no-new-func
+          const v = Function(`"use strict"; return (${p});`)();
+          if (!Number.isFinite(v)) return {ok:false, error:"Result not finite"};
+          const out = (Math.round(v * 1e12) / 1e12).toString();
+          return {ok:true, value: out};
+        }catch{
+          return {ok:false, error:"Parse error"};
+        }
+      }
+
+      function openCalculator(){
+        let expr = "";
+        let outv = "0";
+
+        const dispExpr = el("div", {class:"expr"});
+        const dispOut = el("div", {class:"out"}, outv);
+
+        const root = el("div", {class:"calc"},
+          el("div", {class:"disp"}, dispExpr, dispOut),
+          el("div", {class:"keys"})
+        );
+
+        const keys = [
+          ["C","op"], ["(", "op"], [")","op"], ["⌫","op"],
+          ["7"], ["8"], ["9"], ["/","op"],
+          ["4"], ["5"], ["6"], ["*","op"],
+          ["1"], ["2"], ["3"], ["-","op"],
+          ["0"], ["."] , ["%","op"], ["+","op"],
+          ["=","eq"]
+        ];
+
+        const keysHost = root.querySelector(".keys");
+
+        const update = () => {
+          dispExpr.textContent = expr;
+          dispOut.textContent = outv;
+        };
+
+        const press = (k) => {
+          if (k === "C"){ expr = ""; outv = "0"; update(); return; }
+          if (k === "⌫"){ expr = expr.slice(0, -1); update(); return; }
+          if (k === "="){
+            const r = safeEval(expr);
+            if (r.ok){ outv = r.value; expr = r.value; }
+            else { notify("Calculator", r.error, {duration: 2000}); }
+            update();
+            return;
+          }
+          expr += k;
+          const r = safeEval(expr);
+          if (r.ok) outv = r.value;
+          update();
+        };
+
+        for (const [k, cls] of keys){
+          const btn = el("button", {class:"kbtn" + (cls ? " " + cls : ""), onclick: () => press(k)}, k);
+          if (k === "="){
+            btn.style.gridColumn = "span 4";
+            btn.style.minHeight = "56px";
+          }
+          keysHost.appendChild(btn);
+        }
+
+        const win = createWindow({
+          appId:"calculator",
+          title:"Calculator",
+          subtitle:"Quick math",
+          icon: Icons.calc,
+          width: 360,
+          height: 520,
+          resizable: false,
+          minW: 340,
+          minH: 520,
+          content: root
+        });
+        update();
+        return win;
+      }
+
+      // ---------- Notes app ----------
+      function loadNotes(){
+        try{
+          const raw = localStorage.getItem(KEYS.notes);
+          return raw ? JSON.parse(raw) : [];
+        }catch{ return []; }
+      }
+      function saveNotes(notes){
+        localStorage.setItem(KEYS.notes, JSON.stringify(notes));
+      }
+
+      function openNotes(){
+        let notes = loadNotes();
+        if (notes.length === 0){
+          notes = [{id: uid(), title:"First note", body:"This is Notes. Your notes persist in localStorage.\n\nTry Ctrl+Space for Spotlight.", updated: now()}];
+          saveNotes(notes);
+        }
+        let activeId = notes[0].id;
+
+        const left = el("div", {class:"left"});
+        const right = el("div", {class:"right"});
+        const title = el("input", {type:"text"});
+        const body = el("textarea", {spellcheck:"false"});
+
+        const btnNew = el("button", {class:"btn", onclick: () => {
+          const n = {id: uid(), title:"New note", body:"", updated: now()};
+          notes.unshift(n);
+          activeId = n.id;
+          saveNotes(notes);
+          render();
+          notify("Notes", "Created a new note.");
+        }}, iconNode(Icons.note), "New");
+
+        const btnDel = el("button", {class:"btn", onclick: async () => {
+          const n = notes.find(x => x.id === activeId);
+          if (!n) return;
+          const r = await dialog({title:"Delete note?", message:`Delete “${n.title}”?`, okText:"Delete", danger:true});
+          if (!r.ok) return;
+          notes = notes.filter(x => x.id !== activeId);
+          if (notes.length === 0){
+            notes = [{id: uid(), title:"Empty", body:"", updated: now()}];
+          }
+          activeId = notes[0].id;
+          saveNotes(notes);
+          render();
+        }}, iconNode(Icons.trash), "Delete");
+
+        const tb = el("div", {class:"app-toolbar"}, btnNew, btnDel, el("div",{class:"spacer"}));
+
+        right.appendChild(title);
+        right.appendChild(body);
+
+        const root = el("div", {class:"app notes"}, el("div",{class:"notes"}, left, right));
+        root.insertBefore(tb, root.firstChild);
+
+        const win = createWindow({
+          appId:"notes",
+          title:"Notes",
+          subtitle:"Quick thoughts",
+          icon: Icons.note,
+          width: 820,
+          height: 560,
+          resizable:true,
+          minW: 520,
+          minH: 380,
+          content: root
+        });
+
+        function setActive(id){
+          const n = notes.find(x => x.id === id);
+          if (!n) return;
+          activeId = id;
+          title.value = n.title;
+          body.value = n.body;
+          renderList();
+        }
+
+        function renderList(){
+          left.innerHTML = "";
+          for (const n of notes){
+            const item = el("div", {class:"note-item" + (n.id === activeId ? " active" : "")},
+              el("div", {class:"t"}, n.title || "Untitled"),
+              el("div", {class:"s"}, (n.body || "").trim() || "—")
+            );
+            item.addEventListener("click", () => setActive(n.id));
+            left.appendChild(item);
+          }
+        }
+
+        let saveTimer = null;
+        function scheduleSave(){
+          clearTimeout(saveTimer);
+          saveTimer = setTimeout(() => {
+            const n = notes.find(x => x.id === activeId);
+            if (!n) return;
+            n.title = title.value;
+            n.body = body.value;
+            n.updated = now();
+            saveNotes(notes);
+            renderList();
+          }, 180);
+        }
+
+        title.addEventListener("input", scheduleSave);
+        body.addEventListener("input", scheduleSave);
+
+        function render(){
+          renderList();
+          setActive(activeId);
+        }
+
+        render();
+        return win;
+      }
+
+      // ---------- Media app ----------
+      function openMedia(path=null){
+        const drop = el("div", {class:"drop"},
+          el("div", {},
+            el("div", {style:"font-weight:950; font-size:14px; color: var(--text);"}, "Drop an audio file here"),
+            el("div", {style:"margin-top:8px; font-size:12px; color: var(--muted);"},
+              "Supported: most browser formats. You can also open audio files from Files."
+            )
+          )
+        );
+
+        const name = el("div", {style:"font-weight:900;"}, "Nothing loaded");
+        const audio = el("audio", {controls:true});
+        const player = el("div", {class:"player"},
+          el("div", {class:"row"}, iconNode(Icons.music), name),
+          audio
+        );
+
+        const root = el("div", {class:"media"}, drop, player);
+
+        const win = createWindow({
+          appId:"media",
+          title:"Media",
+          subtitle:"Audio player",
+          icon: Icons.music,
+          width: 520,
+          height: 520,
+          resizable:true,
+          minW: 420,
+          minH: 420,
+          content: root
+        });
+
+        function loadFromFS(p){
+          const st = fs.stat(p);
+          if (!st || st.node.t !== "f"){ notify("Media", "File not found."); return; }
+          name.textContent = p.split("/").pop();
+          const data = st.node.data;
+          if (typeof data === "string" && data.startsWith("data:")){
+            audio.src = data;
+            audio.volume = state.settings.volume;
+            audio.play().catch(()=>{});
+          }else{
+            notify("Media", "This file isn't stored as a playable data URL. Import audio as a file first.");
+          }
+        }
+
+        // drop file (not stored)
+        drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.style.borderColor = "color-mix(in oklab, var(--accent) 60%, rgba(255,255,255,.18))"; });
+        drop.addEventListener("dragleave", () => { drop.style.borderColor = ""; });
+        drop.addEventListener("drop", (e) => {
+          e.preventDefault();
+          drop.style.borderColor = "";
+          const f = e.dataTransfer?.files?.[0];
+          if (!f) return;
+          const url = URL.createObjectURL(f);
+          name.textContent = f.name;
+          audio.src = url;
+          audio.volume = state.settings.volume;
+          audio.play().catch(()=>{});
+          notify("Media", "Playing (not saved).");
+        });
+
+        if (path) loadFromFS(path);
+
+        return win;
+      }
+
+      // ---------- Image viewer ----------
+      function openImageViewer(path){
+        const st = fs.stat(path);
+        if (!st || st.node.t !== "f") return notify("Image", "Not found");
+        const data = st.node.data;
+        const img = el("img", {style:"max-width:100%; max-height:100%; display:block; margin:auto; border-radius: 18px; border: 1px solid var(--stroke); box-shadow: var(--shadow2);"});
+        const wrap = el("div", {style:"height:100%; display:flex; align-items:center; justify-content:center; padding: 14px; background: rgba(0,0,0,.12);"});
+        const zoom = el("input", {type:"range", min:"0.5", max:"2.5", step:"0.01", value:"1"});
+        const zLabel = el("div", {style:"font-weight:850; font-size:12px; color:var(--muted);"}, "100%");
+        const tb = el("div", {class:"app-toolbar"},
+          el("div", {style:"font-weight:900;"}, path.split("/").pop()),
+          el("div", {class:"spacer"}),
+          zLabel,
+          zoom
+        );
+        wrap.appendChild(img);
+
+        const root = el("div", {class:"app"}, tb, wrap);
+
+        const win = createWindow({
+          appId:"image",
+          title:"Image Viewer",
+          subtitle: path,
+          icon: Icons.file,
+          width: 820,
+          height: 560,
+          resizable:true,
+          minW: 420,
+          minH: 320,
+          content: root
+        });
+
+        if (typeof data === "string" && data.startsWith("data:image/")){
+          img.src = data;
+        }else{
+          wrap.innerHTML = `<div class="dropzone" style="margin:0;">This image isn't stored as a data URL. Import an image file in Files first.</div>`;
+        }
+
+        const applyZoom = () => {
+          const z = parseFloat(zoom.value) || 1;
+          img.style.transform = `scale(${z})`;
+          zLabel.textContent = Math.round(z*100) + "%";
+        };
+        zoom.addEventListener("input", applyZoom);
+        applyZoom();
+        return win;
+      }
+
+      // ---------- Settings app (full) ----------
+      function openSettings(){
+        const accent = el("input", {type:"color", value: state.settings.accent});
+        const theme = el("select", {},
+          el("option", {value:"dark"}, "Dark"),
+          el("option", {value:"light"}, "Light"),
+          el("option", {value:"auto"}, "Auto")
+        );
+        theme.value = state.settings.theme;
+
+        const wall = el("select", {},
+          el("option", {value:"aurora"}, "Aurora"),
+          el("option", {value:"midnight"}, "Midnight"),
+          el("option", {value:"sunrise"}, "Sunrise"),
+          el("option", {value:"paper"}, "Paper"),
+          el("option", {value:"grid"}, "Grid")
+        );
+        wall.value = state.settings.wallpaper;
+
+        const motion = el("select", {},
+          el("option", {value:"false"}, "Full"),
+          el("option", {value:"true"}, "Reduced")
+        );
+        motion.value = String(!!state.settings.reduceMotion);
+
+        const dnd = el("select", {},
+          el("option", {value:"false"}, "Off"),
+          el("option", {value:"true"}, "On")
+        );
+        dnd.value = String(!!state.settings.dnd);
+
+        const c24 = el("select", {},
+          el("option", {value:"false"}, "12-hour"),
+          el("option", {value:"true"}, "24-hour")
+        );
+        c24.value = String(!!state.settings.clock24);
+
+        const vol = el("input", {type:"range", min:"0", max:"1", step:"0.01", value: String(state.settings.volume)});
+
+        const storage = el("div", {class:"dropzone", style:"margin:0;"},
+          "NebulaOS stores files and settings in localStorage.\n",
+          "If the OS starts acting weird, try exporting then resetting."
+        );
+
+        const btnExport = el("button", {class:"btn", onclick: () => {
+          const blob = new Blob([JSON.stringify({settings: state.settings, fs: fs.root, recent: state.recent, notes: loadNotes()}, null, 2)], {type:"application/json"});
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = "nebulaos-backup.json";
+          a.click();
+          URL.revokeObjectURL(a.href);
+          notify("Exported", "Downloaded nebulaos-backup.json");
+        }}, iconNode(Icons.download), "Export");
+
+        const importInput = el("input", {type:"file", accept:"application/json", style:"display:none"});
+        const btnImport = el("button", {class:"btn", onclick: () => importInput.click()}, iconNode(Icons.upload), "Import");
+        importInput.addEventListener("change", async () => {
+          const file = importInput.files && importInput.files[0];
+          importInput.value = "";
+          if (!file) return;
+          const r = await dialog({title:"Import backup?", message:"This will overwrite current files/settings. Continue?", okText:"Import", danger:true});
+          if (!r.ok) return;
+          try{
+            const text = await file.text();
+            const obj = JSON.parse(text);
+            if (obj.settings) state.settings = {...defaultSettings(), ...obj.settings};
+            if (obj.fs) fs.root = obj.fs;
+            if (obj.recent) state.recent = obj.recent;
+            if (obj.notes) saveNotes(obj.notes);
+            saveSettings(); fs.save(); saveRecent();
+            applySettings();
+            renderDesktopIcons();
+            renderStartRecent();
+            notify("Imported", "Backup applied. (Existing windows remain.)");
+          }catch(err){
+            notify("Import failed", String(err.message || err), {level:"error"});
+          }
+        });
+
+        const btnReset = el("button", {class:"btn", onclick: async () => {
+          const r = await dialog({title:"Reset NebulaOS?", message:"This clears files, notes, recent items, and settings. (Reload recommended.)", okText:"Reset", danger:true});
+          if (!r.ok) return;
+          localStorage.removeItem(KEYS.fs);
+          localStorage.removeItem(KEYS.settings);
+          localStorage.removeItem(KEYS.recent);
+          localStorage.removeItem(KEYS.notes);
+          notify("Reset complete", "Reloading…");
+          setTimeout(() => location.reload(), 400);
+        }}, iconNode(Icons.trash), "Reset");
+
+        const tb = el("div", {class:"app-toolbar"},
+          el("div", {style:"font-weight:950;"}, "Settings"),
+          el("div", {class:"spacer"}),
+          btnExport, btnImport, importInput, btnReset
+        );
+
+        const root = el("div", {class:"app"},
+          tb,
+          el("div", {class:"about", style:"padding:12px;"},
+            el("div", {class:"card", style:"margin-bottom:10px;"},
+              el("h3", {}, "Appearance"),
+              el("div", {style:"display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:10px;"},
+                settingRow("Theme", theme),
+                settingRow("Accent", accent),
+                settingRow("Wallpaper", wall),
+                settingRow("Reduce motion", motion),
+              )
+            ),
+            el("div", {class:"card", style:"margin-bottom:10px;"},
+              el("h3", {}, "System"),
+              el("div", {style:"display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:10px;"},
+                settingRow("Do Not Disturb", dnd),
+                settingRow("Clock", c24),
+                settingRow("Volume", vol),
+                el("div", {style:"opacity:.7; font-size:12px; line-height:1.35; padding: 8px 2px;"},
+                  "Note: Audio players use this volume.\n",
+                  "Some UI also respects prefers-reduced-motion."
+                )
+              )
+            ),
+            storage
+          )
+        );
+
+        function settingRow(label, inputEl){
+          return el("div", {},
+            el("div", {style:"font-weight:900; font-size:12px; margin-bottom:6px; color: var(--muted);"}, label),
+            inputEl
+          );
+        }
+
+        theme.addEventListener("change", () => { state.settings.theme = theme.value; applySettings(); });
+        accent.addEventListener("input", () => { state.settings.accent = accent.value; applySettings(); });
+        wall.addEventListener("change", () => { state.settings.wallpaper = wall.value; applySettings(); });
+        motion.addEventListener("change", () => { state.settings.reduceMotion = (motion.value === "true"); applySettings(); });
+        dnd.addEventListener("change", () => { state.settings.dnd = (dnd.value === "true"); applySettings(); });
+        c24.addEventListener("change", () => { state.settings.clock24 = (c24.value === "true"); applySettings(); });
+        vol.addEventListener("input", () => { state.settings.volume = parseFloat(vol.value) || 0; applySettings(); });
+
+        const win = createWindow({
+          appId:"settings",
+          title:"Settings",
+          subtitle:"Customize NebulaOS",
+          icon: Icons.gear,
+          width: 760,
+          height: 560,
+          resizable:true,
+          minW: 520,
+          minH: 380,
+          content: root
+        });
+
+        return win;
+      }
+
+      // ---------- About ----------
+      function openAbout(){
+        const root = el("div", {class:"about"},
+          el("div", {class:"hero"},
+            el("div", {class:"orb"}),
+            el("div", {},
+              el("h2", {}, "NebulaOS"),
+              el("p", {}, "A polished browser-based “desktop OS” demo built with plain HTML/CSS/JS — windows, taskbar, panels, apps, and a tiny persistent filesystem.")
+            )
+          ),
+          el("div", {class:"grid"},
+            el("div", {class:"card"},
+              el("h3", {}, "Shortcuts"),
+              el("div", {class:"kbd"},
+                el("span", {class:"tag"}, "Ctrl+Space"),
+                el("span", {}, "Spotlight"),
+                el("span", {style:"width:100%; height:6px; display:block;"}, ""),
+                el("span", {class:"tag"}, "Alt+Tab"),
+                el("span", {}, "Window switcher"),
+                el("span", {style:"width:100%; height:6px; display:block;"}, ""),
+                el("span", {class:"tag"}, "Meta"),
+                el("span", {}, "Start menu"),
+                el("span", {style:"width:100%; height:6px; display:block;"}, ""),
+                el("span", {class:"tag"}, "Esc"),
+                el("span", {}, "Close menus/overlays")
+              )
+            ),
+            el("div", {class:"card"},
+              el("h3", {}, "Features"),
+              el("div", {style:"color: var(--muted); font-size: 13px; line-height: 1.5;"},
+                "• Draggable & resizable windows\n",
+                "• Snap layouts (drag to edges/corners)\n",
+                "• Start menu + quick settings + notification center\n",
+                "• Spotlight search across apps + files + actions\n",
+                "• Filesystem persisted in localStorage\n",
+                "• Editor w/ Markdown-style preview\n",
+                "• Terminal w/ basic commands\n",
+                "• Notes, Calculator, Media player\n"
+              )
+            )
+          ),
+          el("div", {class:"card", style:"margin-top:10px;"},
+            el("h3", {}, "Tips"),
+            el("div", {style:"color: var(--muted); font-size: 13px; line-height: 1.5;"},
+              "• Right-click the desktop for quick actions.\n",
+              "• Import small files via Files (stored in localStorage).\n",
+              "• Try the Browser internal pages: nebula://home and nebula://help.\n"
+            )
+          )
+        );
+
+        const win = createWindow({
+          appId:"about",
+          title:"About",
+          subtitle:"NebulaOS overview",
+          icon: Icons.info,
+          width: 760,
+          height: 560,
+          resizable:true,
+          minW: 520,
+          minH: 380,
+          content: root
+        });
+        return win;
+      }
+
+      // ---------- Desktop icons ----------
+      function iconForEntry(entry){
+        if (entry.kind === "app"){
+          return apps[entry.appId]?.icon || Icons.start;
+        }
+        if (entry.kind === "folder") return Icons.folder;
+        if (entry.kind === "file"){
+          const st = fs.stat(entry.path);
+          const mime = st?.node?.mime || "text/plain";
+          if (mime.startsWith("audio/")) return Icons.music;
+          if (mime.startsWith("image/")) return Icons.file;
+          return Icons.file;
+        }
+        return Icons.dot;
+      }
+
+      function renderDesktopIcons(){
+        dom.desktop.innerHTML = "";
+
+        // App shortcuts
+        const shortcuts = [
+          {kind:"app", appId:"files", label:"Files"},
+          {kind:"app", appId:"browser", label:"Browser"},
+          {kind:"app", appId:"notes", label:"Notes"},
+          {kind:"app", appId:"settings", label:"Settings"},
+          {kind:"folder", path:"/Trash", label:"Trash"},
+        ];
+
+        // Files on Desktop
+        const items = fs.list("/Desktop") || [];
+        const entries = [
+          ...shortcuts,
+          ...items.map(it => ({kind: it.node.t === "d" ? "folder" : "file", path: it.path, label: it.name}))
+        ];
+
+        let selectedIndex = -1;
+
+        function clearSel(){
+          $$(".desk-icon", dom.desktop).forEach(i => i.classList.remove("selected"));
+          selectedIndex = -1;
+        }
+
+        entries.forEach((entry, idx) => {
+          const icon = iconForEntry(entry);
+          const node = el("div", {class:"desk-icon", tabindex:"-1"},
+            el("div", {class:"img", html: icon}),
+            el("div", {class:"label"}, entry.label)
+          );
+
+          node.addEventListener("click", (e) => {
+            e.stopPropagation();
+            clearSel();
+            node.classList.add("selected");
+            selectedIndex = idx;
+          });
+
+          node.addEventListener("dblclick", (e) => {
+            e.stopPropagation();
+            openEntry(entry);
+          });
+
+          node.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+            clearSel();
+            node.classList.add("selected");
+            selectedIndex = idx;
+
+            const common = [
+              {label:"Open", icon: Icons.start, action: () => openEntry(entry)},
+              {label:"Spotlight", icon: Icons.spark, right: "Ctrl+Space", action: () => openSpotlight("")}
+            ];
+
+            const fileActions = [];
+            if (entry.kind === "file" || entry.kind === "folder"){
+              if (entry.path !== "/Trash"){
+                fileActions.push(
+                  {label:"Rename…", icon: Icons.edit, action: async () => {
+                    const name = entry.label;
+                    const r = await dialog({title:"Rename", message:`Rename “${name}”`, input:true, value: name, okText:"Rename"});
+                    if (!r.ok) return;
+                    try{
+                      const newPath = fs.rename(entry.path, r.value.trim());
+                      notify("Renamed", r.value.trim());
+                      renderDesktopIcons();
+                    }catch(err){
+                      notify("Rename failed", String(err.message || err), {level:"error"});
+                    }
+                  }},
+                  {label:"Delete to Trash", icon: Icons.trash, action: async () => {
+                    const r = await dialog({title:"Move to Trash?", message:`“${entry.label}” will be moved to Trash.`, okText:"Move", danger:true});
+                    if (!r.ok) return;
+                    try{
+                      fs.remove(entry.path);
+                      notify("Moved to Trash", entry.label);
+                      renderDesktopIcons();
+                    }catch(err){
+                      notify("Delete failed", String(err.message || err), {level:"error"});
+                    }
+                  }},
+                );
+              }
+            }
+
+            showMenu([
+              ...common,
+              ...(fileActions.length ? ["sep", ...fileActions] : []),
+              "sep",
+              {label:"New folder…", icon: Icons.folder, action: async () => {
+                const r = await dialog({title:"New folder", message:"Create a folder on Desktop", input:true, placeholder:"Folder name", okText:"Create"});
+                if (!r.ok) return;
+                try{
+                  fs.mkdir(fs.norm("/Desktop/" + r.value.trim()));
+                  notify("Folder created", r.value.trim());
+                  renderDesktopIcons();
+                }catch(err){
+                  notify("Couldn't create folder", String(err.message || err), {level:"error"});
+                }
+              }},
+              {label:"New text file…", icon: Icons.file, action: async () => {
+                const r = await dialog({title:"New text file", message:"Create a file on Desktop", input:true, placeholder:"Notes.txt", okText:"Create"});
+                if (!r.ok) return;
+                try{
+                  let name = (r.value || "").trim();
+                  if (!name) name = "Untitled.txt";
+                  if (!name.includes(".")) name += ".txt";
+                  name = fs.ensureUniqueName("/Desktop", name);
+                  const p = fs.norm("/Desktop/" + name);
+                  fs.write(p, "", "text/plain");
+                  notify("File created", name);
+                  renderDesktopIcons();
+                  openEditor(p);
+                }catch(err){
+                  notify("Couldn't create file", String(err.message || err), {level:"error"});
+                }
+              }},
+              {label:"Change wallpaper…", icon: Icons.sliders, action: () => { panels.hideAll("quickSettings"); panels.toggle("quickSettings"); }},
+            ], e.clientX, e.clientY);
+          });
+
+          dom.desktop.appendChild(node);
+        });
+
+        dom.desktop.addEventListener("click", () => clearSel());
+
+        dom.desktop.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && selectedIndex >= 0){
+            openEntry(entries[selectedIndex]);
+          }
+        });
+
+        function openEntry(entry){
+          if (entry.kind === "app") return openApp(entry.appId);
+          if (entry.kind === "folder") return openFiles(entry.path);
+          if (entry.kind === "file") return openFile(entry.path);
+        }
+      }
+
+      // ---------- taskbar rendering ----------
+      function renderTaskbar(){
+        // pinned apps
+        dom.tbPins.innerHTML = "";
+        for (const appId of state.pinned){
+          const app = apps[appId];
+          if (!app) continue;
+          const running = Array.from(state.windows.values()).some(w => w.appId === appId);
+          const active = running && state.focused && state.windows.get(state.focused)?.appId === appId;
+
+          const btn = el("button", {class:"tb-icon" + (running ? " running" : "") + (active ? " active" : ""), title: app.name},
+            el("span", {html: app.icon})
+          );
+          btn.addEventListener("click", () => {
+            // focus existing if any, else open
+            const wins = Array.from(state.windows.values()).filter(w => w.appId === appId);
+            if (wins.length){
+              // focus topmost of that app
+              const top = wins.sort((a,b) => (parseInt(a.el.style.zIndex||"0") - parseInt(b.el.style.zIndex||"0"))).pop();
+              if (top.minimized) restoreWindow(top.id);
+              else focusWindow(top.id);
+            }else{
+              openApp(appId);
+            }
+          });
+          btn.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+            const wins = Array.from(state.windows.values()).filter(w => w.appId === appId);
+            showMenu([
+              {label:"Open new window", icon: app.icon, action: () => openApp(appId)},
+              ...(wins.length ? ["sep", ...wins.map(w => ({
+                label: "Focus: " + w.title,
+                icon: app.icon,
+                action: () => { if (w.minimized) restoreWindow(w.id); focusWindow(w.id); }
+              }))] : []),
+              "sep",
+              {label:"Unpin", icon: Icons.trash, action: () => {
+                state.pinned = state.pinned.filter(x => x !== appId);
+                renderTaskbar();
+                notify("Taskbar", `Unpinned ${app.name}.`);
+              }}
+            ], e.clientX, e.clientY);
+          });
+
+          dom.tbPins.appendChild(btn);
+        }
+
+        // windows list (individual)
+        dom.tbWins.innerHTML = "";
+        const wins = Array.from(state.windows.values())
+          .sort((a,b) => parseInt(a.el.style.zIndex||"0") - parseInt(b.el.style.zIndex||"0"));
+
+        for (const w of wins){
+          const active = (state.focused === w.id) && !w.minimized;
+          const btn = el("button", {class:"tb-icon" + (active ? " active running" : " running"), title: w.title},
+            el("span", {html: w.icon || Icons.dot}),
+            el("span", {class:"dot"})
+          );
+          btn.addEventListener("click", () => {
+            if (w.minimized) restoreWindow(w.id);
+            else {
+              if (state.focused === w.id) minimizeWindow(w.id);
+              else focusWindow(w.id);
+            }
+          });
+          btn.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+            showMenu([
+              {label: "Restore", icon: Icons.max, disabled: !w.minimized, action: () => restoreWindow(w.id)},
+              {label: "Minimize", icon: Icons.min, disabled: w.minimized, action: () => minimizeWindow(w.id)},
+              {label: w.maximized ? "Restore Down" : "Maximize", icon: w.maximized ? Icons.restore : Icons.max, action: () => toggleMaximize(w.id)},
+              "sep",
+              {label: "Close", icon: Icons.x, action: () => closeWindow(w.id)}
+            ], e.clientX, e.clientY);
+          });
+
+          dom.tbWins.appendChild(btn);
+        }
+      }
+
+      // ---------- start menu ----------
+      function renderStartApps(filter=""){
+        const q = filter.trim().toLowerCase();
+        dom.appsGrid.innerHTML = "";
+        const list = Object.values(apps)
+          .filter(a => ["about"].includes(a.id) ? true : true)
+          .filter(a => !q || a.name.toLowerCase().includes(q) || a.id.includes(q));
+
+        for (const a of list){
+          const tile = el("div", {class:"app-tile"},
+            el("div", {class:"ico", html: a.icon}),
+            el("div", {class:"name"}, a.name)
+          );
+          tile.addEventListener("click", () => {
+            panels.close("startMenu");
+            openApp(a.id);
+          });
+          dom.appsGrid.appendChild(tile);
+        }
+      }
+
+      function renderStartRecent(filter=""){
+        const q = filter.trim().toLowerCase();
+        dom.recentList.innerHTML = "";
+        const items = state.recent.filter(r => !q || (r.label||"").toLowerCase().includes(q) || (r.sub||"").toLowerCase().includes(q));
+        if (items.length === 0){
+          dom.recentList.appendChild(el("div", {class:"dropzone", style:"margin:0;"},
+            "No recent items yet.\n\nOpen some files or apps!"
+          ));
+          return;
+        }
+        for (const it of items.slice(0, 8)){
+          const ico = it.type === "app" ? (apps[it.payload.appId]?.icon ?? Icons.start) : Icons.file;
+          const row = el("div", {class:"list-item"},
+            el("span", {class:"icon", html: ico}),
+            el("div", {class:"meta"},
+              el("div", {class:"top"}, it.label),
+              el("div", {class:"sub"}, it.sub || "")
+            )
+          );
+          row.addEventListener("click", () => {
+            panels.close("startMenu");
+            if (it.type === "app") openApp(it.payload.appId);
+            if (it.type === "file") openFile(it.payload.path);
+          });
+          dom.recentList.appendChild(row);
+        }
+      }
+
+      // ---------- spotlight ----------
+      function spotlightIndex(){
+        // apps + files + actions
+        const results = [];
+
+        for (const a of Object.values(apps)){
+          results.push({
+            kind:"app",
+            key:`app:${a.id}`,
+            title:a.name,
+            subtitle:"App",
+            icon:a.icon,
+            run:() => openApp(a.id)
+          });
+        }
+
+        const fileHits = [];
+        function walkDir(path){
+          const items = fs.list(path) || [];
+          for (const it of items){
+            fileHits.push({path: it.path, name: it.name, t: it.node.t, mime: it.node.mime});
+            if (it.node.t === "d") walkDir(it.path);
+          }
+        }
+        walkDir("/Desktop");
+        walkDir("/Documents");
+        walkDir("/Downloads");
+        walkDir("/Pictures");
+        walkDir("/Music");
+        walkDir("/Trash");
+
+        for (const f of fileHits){
+          results.push({
+            kind:"file",
+            key:`file:${f.path}`,
+            title: f.name,
+            subtitle: f.path,
+            icon: f.t === "d" ? Icons.folder : (String(f.mime||"").startsWith("audio/") ? Icons.music : Icons.file),
+            run:() => openFile(f.path)
+          });
+        }
+
+        // actions
+        results.push(
+          {kind:"action", key:"action:lock", title:"Lock screen", subtitle:"Action", icon: Icons.lock, run: lock},
+          {kind:"action", key:"action:settings", title:"Open Settings", subtitle:"Action", icon: Icons.gear, run: () => openApp("settings")},
+          {kind:"action", key:"action:clearTrash", title:"Empty Trash", subtitle:"Action", icon: Icons.trash, run: async () => {
+            const r = await dialog({title:"Empty Trash?", message:"Permanently remove all items in Trash?", okText:"Empty", danger:true});
+            if (!r.ok) return;
+            const trash = fs.stat("/Trash")?.node;
+            if (trash && trash.t === "d"){ trash.c = {}; trash.modified = now(); fs.save(); }
+            notify("Trash emptied", "All items removed.");
+            renderDesktopIcons();
+          }},
+          {kind:"action", key:"action:spotlight", title:"Spotlight search", subtitle:"Action", icon: Icons.spark, run: () => openSpotlight("")}
+        );
+
+        return results;
+      }
+
+      function openSpotlight(prefill=""){
+        panels.hideAll(null);
+        dom.spotlight.classList.add("show");
+        dom.spotInput.value = prefill;
+        dom.spotInput.focus();
+        renderSpotlight(prefill);
+      }
+      function closeSpotlight(){
+        dom.spotlight.classList.remove("show");
+      }
+
+      function renderSpotlight(query){
+        const q = String(query || "").trim().toLowerCase();
+        const idx = spotlightIndex();
+        const filtered = idx.filter(r => {
+          if (!q) return true;
+          return (r.title||"").toLowerCase().includes(q) || (r.subtitle||"").toLowerCase().includes(q);
+        }).slice(0, 12);
+
+        dom.spotResults.innerHTML = "";
+        if (filtered.length === 0){
+          dom.spotResults.appendChild(el("div", {class:"dropzone", style:"margin:0;"},
+            "No matches.\n\nTry typing 'settings', 'welcome', or a file path."
+          ));
+          return;
+        }
+
+        filtered.forEach((r, i) => {
+          const row = el("div", {class:"spot-item" + (i===0 ? " active" : "")},
+            el("div", {class:"ico", html: r.icon || Icons.dot}),
+            el("div", {class:"meta"},
+              el("div", {class:"top"}, r.title),
+              el("div", {class:"sub"}, r.subtitle || "")
+            )
+          );
+          row.addEventListener("click", () => {
+            closeSpotlight();
+            r.run();
+          });
+          dom.spotResults.appendChild(row);
+        });
+      }
+
+      // keyboard selection inside spotlight
+      function spotlightSelect(delta){
+        const items = $$(".spot-item", dom.spotResults);
+        if (!items.length) return;
+        let idx = items.findIndex(i => i.classList.contains("active"));
+        idx = idx < 0 ? 0 : idx;
+        idx = clamp(idx + delta, 0, items.length - 1);
+        items.forEach(i => i.classList.remove("active"));
+        items[idx].classList.add("active");
+        items[idx].scrollIntoView({block:"nearest"});
+      }
+      function spotlightRunSelected(){
+        const active = $(".spot-item.active", dom.spotResults);
+        if (!active) return;
+        active.click();
+      }
+
+      // ---------- alt-tab switcher ----------
+      function openSwitcher(){
+        const wins = Array.from(state.windows.values()).filter(w => !w.minimized);
+        if (wins.length <= 1) return;
+        state.altTab.open = true;
+        state.altTab.ids = wins.sort((a,b) => (parseInt(b.el.style.zIndex||"0") - parseInt(a.el.style.zIndex||"0"))).map(w => w.id);
+        state.altTab.index = 0;
+        renderSwitcher();
+        dom.switcher.classList.add("show");
+      }
+      function closeSwitcher(apply=true){
+        if (!state.altTab.open) return;
+        dom.switcher.classList.remove("show");
+        state.altTab.open = false;
+        if (apply){
+          const id = state.altTab.ids[state.altTab.index];
+          if (id) focusWindow(id);
+        }
+      }
+      function cycleSwitcher(){
+        if (!state.altTab.open) return;
+        state.altTab.index = (state.altTab.index + 1) % state.altTab.ids.length;
+        renderSwitcher();
+      }
+      function renderSwitcher(){
+        dom.swRow.innerHTML = "";
+        for (let i=0;i<state.altTab.ids.length;i++){
+          const id = state.altTab.ids[i];
+          const w = state.windows.get(id);
+          if (!w) continue;
+          const item = el("div", {class:"sw-item" + (i===state.altTab.index ? " active" : "")},
+            el("div", {class:"top"},
+              el("div", {class:"ico", html: w.icon || Icons.dot}),
+              el("div", {style:"overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"}, w.title)
+            ),
+            el("div", {class:"thumb"})
+          );
+          dom.swRow.appendChild(item);
+        }
+      }
+
+      // ---------- clock / lock ----------
+      function tickClock(){
+        const d = new Date();
+        const time = d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", hour12: !state.settings.clock24});
+        const date = d.toLocaleDateString([], {weekday:"short", month:"short", day:"2-digit"});
+        dom.clockTime.textContent = time;
+        dom.clockDate.textContent = date;
+
+        dom.lockTime.textContent = time;
+        dom.lockDate.textContent = d.toLocaleDateString([], {weekday:"long", year:"numeric", month:"long", day:"numeric"});
+      }
+
+      function lock(){
+        panels.hideAll(null);
+        closeSpotlight();
+        dom.lockScreen.classList.add("show");
+        tickClock();
+      }
+      function unlock(){
+        dom.lockScreen.classList.remove("show");
+      }
+
+      // ---------- boot ----------
+      function boot(){
+        loadSettings();
+        loadRecent();
+        fs.load();
+        applySettings();
+
+        renderDesktopIcons();
+        renderStartApps();
+        renderStartRecent();
+        renderNotifCount();
+        renderNotifCenter();
+        renderTaskbar();
+
+        // Boot sequence
+        setTimeout(() => {
+          dom.boot.style.opacity = "0";
+          dom.boot.style.pointerEvents = "none";
+          dom.os.classList.remove("hidden");
+          setTimeout(() => dom.boot.remove(), 260);
+          notify("Welcome", "NebulaOS is ready. Try Ctrl+Space ✨", {duration: 2600});
+          // open welcome on first run (if no settings saved before)
+          const first = !localStorage.getItem(KEYS.settings);
+          if (first){
+            openFiles("/Desktop");
+            openEditor("/Desktop/Welcome.txt");
+          }
+        }, 850);
+      }
+
+      // ---------- wiring ----------
+      // Start menu / quick settings / notifications
+      dom.btnStart.addEventListener("click", () => panels.toggle("startMenu"));
+      dom.chipClock.addEventListener("click", () => panels.toggle("quickSettings"));
+      dom.chipNotif.addEventListener("click", () => panels.toggle("notifCenter"));
+      dom.btnClearNotifs.addEventListener("click", () => clearNotifs());
+
+      // Hide panels on click outside
+      document.addEventListener("pointerdown", (e) => {
+        // context menu
+        if (!within(e.target, "#contextMenu")) hideMenu();
+
+        // panels
+        const clickedPanel = within(e.target, "#startMenu") || within(e.target, "#quickSettings") || within(e.target, "#notifCenter");
+        const clickedTaskbar = within(e.target, "#taskbar");
+        if (!clickedPanel && !clickedTaskbar){
+          panels.hideAll(null);
+        }
+      });
+
+      // Context menu on desktop empty area
+      dom.desktop.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        showMenu([
+          {label:"New folder…", icon: Icons.folder, action: async () => {
+            const r = await dialog({title:"New folder", message:"Create a folder on Desktop", input:true, placeholder:"Folder name", okText:"Create"});
+            if (!r.ok) return;
+            try{
+              fs.mkdir(fs.norm("/Desktop/" + r.value.trim()));
+              notify("Folder created", r.value.trim());
+              renderDesktopIcons();
+            }catch(err){
+              notify("Couldn't create folder", String(err.message || err), {level:"error"});
+            }
+          }},
+          {label:"New text file…", icon: Icons.file, action: async () => {
+            const r = await dialog({title:"New text file", message:"Create a file on Desktop", input:true, placeholder:"Notes.txt", okText:"Create"});
+            if (!r.ok) return;
+            try{
+              let name = (r.value || "").trim();
+              if (!name) name = "Untitled.txt";
+              if (!name.includes(".")) name += ".txt";
+              name = fs.ensureUniqueName("/Desktop", name);
+              const p = fs.norm("/Desktop/" + name);
+              fs.write(p, "", "text/plain");
+              notify("File created", name);
+              renderDesktopIcons();
+              openEditor(p);
+            }catch(err){
+              notify("Couldn't create file", String(err.message || err), {level:"error"});
+            }
+          }},
+          "sep",
+          {label:"Spotlight", icon: Icons.spark, right:"Ctrl+Space", action: () => openSpotlight("")},
+          {label:"Quick settings", icon: Icons.sliders, action: () => panels.toggle("quickSettings")},
+          {label:"Settings", icon: Icons.gear, action: () => openApp("settings")},
+          "sep",
+          {label:"Refresh desktop", icon: Icons.refresh, action: () => renderDesktopIcons()},
+        ], e.clientX, e.clientY);
+      });
+
+      // Taskbar search opens spotlight
+      dom.taskSearch.addEventListener("keydown", (e) => {
+        if (e.key === "Enter"){
+          openSpotlight(dom.taskSearch.value);
+          dom.taskSearch.value = "";
+        }
+      });
+
+      // Start menu behavior
+      dom.btnSpot.addEventListener("click", () => { panels.close("startMenu"); openSpotlight(""); });
+      dom.openDocs.addEventListener("click", () => { panels.close("startMenu"); openFiles("/Documents"); });
+      dom.openSettings.addEventListener("click", () => { panels.close("startMenu"); openSettings(); });
+      dom.openAbout.addEventListener("click", () => { panels.close("startMenu"); openAbout(); });
+
+      dom.btnAllSettings.addEventListener("click", () => { panels.close("quickSettings"); openSettings(); });
+
+      dom.startSearch.addEventListener("input", () => {
+        const q = dom.startSearch.value;
+        renderStartApps(q);
+        renderStartRecent(q);
+      });
+      dom.startSearch.addEventListener("keydown", (e) => {
+        if (e.key === "Enter"){
+          // open first app tile
+          const first = $(".app-tile", dom.appsGrid);
+          if (first){ panels.close("startMenu"); first.click(); }
+        }
+      });
+
+      // Power buttons
+      dom.btnLock.addEventListener("click", () => { panels.close("startMenu"); lock(); });
+      dom.btnRestart.addEventListener("click", async () => {
+        const r = await dialog({title:"Restart NebulaOS?", message:"This reloads the page.", okText:"Restart", danger:true});
+        if (!r.ok) return;
+        location.reload();
+      });
+      dom.btnShutdown.addEventListener("click", async () => {
+        const r = await dialog({title:"Shut down?", message:"This is a demo OS. We can 'power off' by showing the lock screen.", okText:"Shut down", danger:true});
+        if (!r.ok) return;
+        lock();
+        notify("Shut down", "Click to 'boot' (unlock).", {duration: 2500});
+      });
+
+      // Quick toggles
+      dom.togDark.addEventListener("click", () => {
+        // toggle between dark and light (keep auto if set)
+        state.settings.theme = (document.documentElement.dataset.theme === "dark") ? "light" : "dark";
+        applySettings();
+      });
+      dom.togDnd.addEventListener("click", () => { state.settings.dnd = !state.settings.dnd; applySettings(); });
+      dom.togMotion.addEventListener("click", () => { state.settings.reduceMotion = !state.settings.reduceMotion; applySettings(); });
+      dom.tog24h.addEventListener("click", () => { state.settings.clock24 = !state.settings.clock24; applySettings(); });
+
+      dom.accentPicker.addEventListener("input", () => { state.settings.accent = dom.accentPicker.value; applySettings(); });
+      dom.volRange.addEventListener("input", () => { state.settings.volume = parseFloat(dom.volRange.value) || 0; applySettings(); });
+
+      // Spotlight wiring
+      dom.spotInput.addEventListener("input", () => renderSpotlight(dom.spotInput.value));
+      dom.spotClose.addEventListener("click", () => closeSpotlight());
+      dom.spotlight.addEventListener("pointerdown", (e) => {
+        if (e.target === dom.spotlight) closeSpotlight();
+      });
+
+      dom.spotInput.addEventListener("keydown", (e) => {
+        if (e.key === "Escape"){ e.preventDefault(); closeSpotlight(); }
+        if (e.key === "ArrowDown"){ e.preventDefault(); spotlightSelect(+1); }
+        if (e.key === "ArrowUp"){ e.preventDefault(); spotlightSelect(-1); }
+        if (e.key === "Enter"){ e.preventDefault(); spotlightRunSelected(); }
+      });
+
+      // Lock screen wiring
+      dom.lockScreen.addEventListener("pointerdown", () => unlock());
+      document.addEventListener("keydown", (e) => {
+        if (dom.lockScreen.classList.contains("show") && (e.key === "Enter" || e.key === "Escape")){
+          e.preventDefault();
+          unlock();
+        }
+      }, true);
+
+      // Global keyboard shortcuts
+      document.addEventListener("keydown", (e) => {
+        // ignore when dialog open
+        if (dom.dialogOverlay.classList.contains("show")) return;
+
+        // ignore while typing in inputs (except specific combos)
+        const typing = ["INPUT","TEXTAREA"].includes(document.activeElement?.tagName);
+
+        // Esc closes panels/menus/overlays
+        if (e.key === "Escape"){
+          hideMenu();
+          panels.hideAll(null);
+          if (dom.spotlight.classList.contains("show")) closeSpotlight();
+          if (state.altTab.open) closeSwitcher(false);
+          return;
+        }
+
+        // Meta toggles start menu (Windows key / Command on mac)
+        if (e.key === "Meta"){
+          e.preventDefault();
+          panels.toggle("startMenu");
+          if (!dom.startMenu.classList.contains("hidden")) setTimeout(()=>dom.startSearch.focus(), 0);
+          return;
+        }
+
+        // Ctrl+Space Spotlight
+        if ((e.ctrlKey || e.metaKey) && e.code === "Space"){
+          e.preventDefault();
+          openSpotlight("");
+          return;
+        }
+
+        // Alt+Tab switcher
+        if (e.altKey && e.key === "Tab"){
+          e.preventDefault();
+          if (!state.altTab.open) openSwitcher();
+          else cycleSwitcher();
+          return;
+        }
+
+        // Enter in start menu search opens first result
+        if (typing) return;
+      }, true);
+
+      document.addEventListener("keyup", (e) => {
+        if (e.key === "Alt" && state.altTab.open){
+          closeSwitcher(true);
+        }
+      }, true);
+
+      // Switcher click outside closes
+      dom.switcher.addEventListener("pointerdown", (e) => {
+        if (e.target === dom.switcher) closeSwitcher(true);
+      });
+
+      // Clock tick
+      setInterval(tickClock, 1000);
+
+      // Prevent scrolling
+      window.addEventListener("wheel", (e) => { if (!within(e.target, ".content") && !within(e.target, ".panel")) e.preventDefault(); }, {passive:false});
+
+      // ---------- initialize ----------
+      boot();
+      tickClock();
+
+      // Open Spotlight from taskbar search focus
+      dom.taskSearch.addEventListener("focus", () => {
+        dom.taskSearch.placeholder = "Press Enter to open Spotlight…";
+      });
+
+    })();
+  </script>
+</body>
+</html>
