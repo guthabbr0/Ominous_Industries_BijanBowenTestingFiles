@@ -31,6 +31,503 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Generate Index HTML
+        run: |
+          cat > static/index.html << 'HTMLEOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Index of Static Files - Ominous Industries</title>
+              <style>
+                  :root {
+                      --primary-color: #6366f1;
+                      --primary-hover: #4f46e5;
+                      --bg-color: #0f172a;
+                      --card-bg: #1e293b;
+                      --text-color: #e2e8f0;
+                      --text-muted: #94a3b8;
+                      --border-color: #334155;
+                      --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+                  }
+                  
+                  * {
+                      margin: 0;
+                      padding: 0;
+                      box-sizing: border-box;
+                  }
+                  
+                  body {
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+                      background: var(--bg-color);
+                      color: var(--text-color);
+                      min-height: 100vh;
+                      line-height: 1.6;
+                  }
+                  
+                  .container {
+                      max-width: 1200px;
+                      margin: 0 auto;
+                      padding: 2rem;
+                  }
+                  
+                  header {
+                      text-align: center;
+                      margin-bottom: 3rem;
+                      padding: 2rem;
+                      background: var(--accent-gradient);
+                      border-radius: 16px;
+                      box-shadow: 0 20px 40px rgba(99, 102, 241, 0.3);
+                  }
+                  
+                  h1 {
+                      font-size: 2.5rem;
+                      font-weight: 800;
+                      margin-bottom: 0.5rem;
+                      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+                  }
+                  
+                  .subtitle {
+                      font-size: 1.1rem;
+                      opacity: 0.9;
+                  }
+                  
+                  .controls {
+                      display: flex;
+                      gap: 1rem;
+                      margin-bottom: 2rem;
+                      flex-wrap: wrap;
+                  }
+                  
+                  .search-box {
+                      flex: 1;
+                      min-width: 250px;
+                      position: relative;
+                  }
+                  
+                  .search-box input {
+                      width: 100%;
+                      padding: 1rem 1rem 1rem 3rem;
+                      font-size: 1rem;
+                      border: 2px solid var(--border-color);
+                      border-radius: 12px;
+                      background: var(--card-bg);
+                      color: var(--text-color);
+                      transition: all 0.3s ease;
+                  }
+                  
+                  .search-box input:focus {
+                      outline: none;
+                      border-color: var(--primary-color);
+                      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+                  }
+                  
+                  .search-box::before {
+                      content: "🔍";
+                      position: absolute;
+                      left: 1rem;
+                      top: 50%;
+                      transform: translateY(-50%);
+                      font-size: 1.2rem;
+                  }
+                  
+                  .sort-btn {
+                      padding: 1rem 1.5rem;
+                      font-size: 1rem;
+                      font-weight: 600;
+                      border: 2px solid var(--border-color);
+                      border-radius: 12px;
+                      background: var(--card-bg);
+                      color: var(--text-color);
+                      cursor: pointer;
+                      transition: all 0.3s ease;
+                      display: flex;
+                      align-items: center;
+                      gap: 0.5rem;
+                  }
+                  
+                  .sort-btn:hover {
+                      border-color: var(--primary-color);
+                      background: var(--primary-color);
+                  }
+                  
+                  .folder-list {
+                      display: flex;
+                      flex-direction: column;
+                      gap: 1.5rem;
+                  }
+                  
+                  .folder-card {
+                      background: var(--card-bg);
+                      border-radius: 16px;
+                      overflow: hidden;
+                      border: 1px solid var(--border-color);
+                      transition: all 0.3s ease;
+                  }
+                  
+                  .folder-card:hover {
+                      border-color: var(--primary-color);
+                      box-shadow: 0 10px 30px rgba(99, 102, 241, 0.2);
+                      transform: translateY(-2px);
+                  }
+                  
+                  .folder-header {
+                      padding: 1.5rem;
+                      cursor: pointer;
+                      display: flex;
+                      align-items: center;
+                      gap: 1rem;
+                      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+                      border-bottom: 1px solid var(--border-color);
+                  }
+                  
+                  .folder-icon {
+                      font-size: 2rem;
+                  }
+                  
+                  .folder-title {
+                      flex: 1;
+                      font-size: 1.25rem;
+                      font-weight: 700;
+                  }
+                  
+                  .folder-count {
+                      background: var(--primary-color);
+                      color: white;
+                      padding: 0.25rem 0.75rem;
+                      border-radius: 20px;
+                      font-size: 0.875rem;
+                      font-weight: 600;
+                  }
+                  
+                  .expand-icon {
+                      font-size: 1.5rem;
+                      transition: transform 0.3s ease;
+                  }
+                  
+                  .folder-card.collapsed .expand-icon {
+                      transform: rotate(-90deg);
+                  }
+                  
+                  .file-list {
+                      padding: 1rem 1.5rem 1.5rem;
+                      display: flex;
+                      flex-direction: column;
+                      gap: 0.5rem;
+                  }
+                  
+                  .folder-card.collapsed .file-list {
+                      display: none;
+                  }
+                  
+                  .file-item {
+                      display: flex;
+                      align-items: center;
+                      gap: 0.75rem;
+                      padding: 0.75rem 1rem;
+                      background: rgba(0, 0, 0, 0.2);
+                      border-radius: 8px;
+                      text-decoration: none;
+                      color: var(--text-color);
+                      transition: all 0.2s ease;
+                  }
+                  
+                  .file-item:hover {
+                      background: rgba(99, 102, 241, 0.2);
+                      transform: translateX(5px);
+                  }
+                  
+                  .file-icon {
+                      font-size: 1.25rem;
+                  }
+                  
+                  .file-name {
+                      flex: 1;
+                      font-weight: 500;
+                  }
+                  
+                  .file-ext {
+                      font-size: 0.75rem;
+                      text-transform: uppercase;
+                      background: var(--border-color);
+                      padding: 0.25rem 0.5rem;
+                      border-radius: 4px;
+                      font-weight: 600;
+                  }
+                  
+                  .no-results {
+                      text-align: center;
+                      padding: 4rem 2rem;
+                      color: var(--text-muted);
+                  }
+                  
+                  .no-results-icon {
+                      font-size: 4rem;
+                      margin-bottom: 1rem;
+                  }
+                  
+                  .hidden {
+                      display: none !important;
+                  }
+                  
+                  footer {
+                      text-align: center;
+                      margin-top: 3rem;
+                      padding: 2rem;
+                      color: var(--text-muted);
+                      border-top: 1px solid var(--border-color);
+                  }
+                  
+                  footer a {
+                      color: var(--primary-color);
+                      text-decoration: none;
+                  }
+                  
+                  footer a:hover {
+                      text-decoration: underline;
+                  }
+                  
+                  @media (max-width: 640px) {
+                      .container {
+                          padding: 1rem;
+                      }
+                      
+                      h1 {
+                          font-size: 1.75rem;
+                      }
+                      
+                      .folder-header {
+                          padding: 1rem;
+                      }
+                      
+                      .folder-title {
+                          font-size: 1rem;
+                      }
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <header>
+                      <h1>🏭 Ominous Industries</h1>
+                      <p class="subtitle">by Bijan Bowen</p>
+                  </header>
+                  
+                  <div class="controls">
+                      <div class="search-box">
+                          <input type="text" id="searchInput" placeholder="Search files and folders...">
+                      </div>
+                      <button class="sort-btn" id="sortBtn" data-order="asc">
+                          <span>Sort A-Z</span>
+                          <span class="sort-indicator">↑</span>
+                      </button>
+                  </div>
+                  
+                  <div class="folder-list" id="folderList">
+                      <!-- Folders will be injected here -->
+                  </div>
+                  
+                  <div class="no-results hidden" id="noResults">
+                      <div class="no-results-icon">🔍</div>
+                      <h3>No results found</h3>
+                      <p>Try adjusting your search terms</p>
+                  </div>
+                  
+                  <footer>
+                      <p>Generated automatically on push • <a href="https://www.bijanbowen.com/" target="_blank">bijanbowen.com</a> • <a href="https://www.youtube.com/@Bijanbowen" target="_blank">YouTube</a></p>
+                  </footer>
+              </div>
+              
+              <script id="file-data" type="application/json">FILE_DATA_PLACEHOLDER</script>
+              <script>
+                  // Parse file data from the JSON script element (safe from XSS)
+                  const fileData = JSON.parse(document.getElementById('file-data').textContent);
+                  
+                  function escapeHtml(text) {
+                      const div = document.createElement('div');
+                      div.textContent = text;
+                      return div.innerHTML;
+                  }
+                  
+                  function getFileExt(filename) {
+                      const parts = filename.split('.');
+                      if (parts.length <= 1) return '';
+                      return parts.pop().toLowerCase();
+                  }
+                  
+                  function getFileIcon(filename) {
+                      const ext = getFileExt(filename);
+                      const icons = {
+                          'html': '📄',
+                          'htm': '📄',
+                          'css': '🎨',
+                          'js': '⚡',
+                          'json': '📋',
+                          'md': '📝',
+                          'txt': '📝',
+                          'png': '🖼️',
+                          'jpg': '🖼️',
+                          'jpeg': '🖼️',
+                          'gif': '🖼️',
+                          'svg': '🖼️',
+                          'pdf': '📕',
+                          'zip': '📦',
+                          'py': '🐍',
+                          'cpp': '⚙️',
+                          'c': '⚙️',
+                          'h': '⚙️',
+                          'java': '☕',
+                          'rb': '💎',
+                          'go': '🔵',
+                          'rs': '🦀',
+                          'ts': '💙',
+                          'tsx': '💙',
+                          'jsx': '💛',
+                          'vue': '💚',
+                          'php': '🐘'
+                      };
+                      return icons[ext] || '📄';
+                  }
+                  
+                  function getFileExtDisplay(filename) {
+                      const ext = getFileExt(filename);
+                      return ext ? ext.toUpperCase() : 'FILE';
+                  }
+                  
+                  function renderFolders(data, sortOrder = 'asc') {
+                      const folderList = document.getElementById('folderList');
+                      folderList.innerHTML = '';
+                      
+                      const sortedFolders = Object.keys(data).sort((a, b) => {
+                          return sortOrder === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+                      });
+                      
+                      sortedFolders.forEach(folder => {
+                          const files = data[folder];
+                          const card = document.createElement('div');
+                          card.className = 'folder-card';
+                          card.dataset.folder = folder.toLowerCase();
+                          
+                          const filesHtml = files.map(file => {
+                              const encodedFolder = encodeURIComponent(folder);
+                              const encodedFile = encodeURIComponent(file);
+                              return `
+                                  <a href="${encodedFolder}/${encodedFile}" class="file-item" data-file="${escapeHtml(file.toLowerCase())}">
+                                      <span class="file-icon">${getFileIcon(file)}</span>
+                                      <span class="file-name">${escapeHtml(file)}</span>
+                                      <span class="file-ext">${getFileExtDisplay(file)}</span>
+                                  </a>
+                              `;
+                          }).join('');
+                          
+                          card.innerHTML = `
+                              <div class="folder-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                                  <span class="folder-icon">📁</span>
+                                  <span class="folder-title">${escapeHtml(folder)}</span>
+                                  <span class="folder-count">${files.length} file${files.length !== 1 ? 's' : ''}</span>
+                                  <span class="expand-icon">▼</span>
+                              </div>
+                              <div class="file-list">
+                                  ${filesHtml}
+                              </div>
+                          `;
+                          
+                          folderList.appendChild(card);
+                      });
+                  }
+                  
+                  function filterContent(searchTerm) {
+                      const folderCards = document.querySelectorAll('.folder-card');
+                      let hasResults = false;
+                      
+                      folderCards.forEach(card => {
+                          const folderName = card.dataset.folder;
+                          const fileItems = card.querySelectorAll('.file-item');
+                          let folderMatches = folderName.includes(searchTerm);
+                          let visibleFiles = 0;
+                          
+                          fileItems.forEach(item => {
+                              const fileName = item.dataset.file;
+                              const matches = fileName.includes(searchTerm) || folderMatches;
+                              item.classList.toggle('hidden', !matches && searchTerm !== '');
+                              if (matches || searchTerm === '') visibleFiles++;
+                          });
+                          
+                          const showFolder = folderMatches || visibleFiles > 0 || searchTerm === '';
+                          card.classList.toggle('hidden', !showFolder);
+                          if (showFolder) hasResults = true;
+                          
+                          // Expand folders when searching
+                          if (searchTerm !== '') {
+                              card.classList.remove('collapsed');
+                          }
+                      });
+                      
+                      document.getElementById('noResults').classList.toggle('hidden', hasResults);
+                  }
+                  
+                  // Initialize
+                  renderFolders(fileData);
+                  
+                  // Search functionality
+                  document.getElementById('searchInput').addEventListener('input', (e) => {
+                      filterContent(e.target.value.toLowerCase());
+                  });
+                  
+                  // Sort functionality
+                  document.getElementById('sortBtn').addEventListener('click', function() {
+                      const currentOrder = this.dataset.order;
+                      const newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+                      this.dataset.order = newOrder;
+                      this.querySelector('span:first-child').textContent = newOrder === 'asc' ? 'Sort A-Z' : 'Sort Z-A';
+                      this.querySelector('.sort-indicator').textContent = newOrder === 'asc' ? '↑' : '↓';
+                      renderFolders(fileData, newOrder);
+                      
+                      // Reapply search filter
+                      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                      if (searchTerm) {
+                          filterContent(searchTerm);
+                      }
+                  });
+              </script>
+          </body>
+          </html>
+          HTMLEOF
+
+          # Generate file data JSON from the static folder structure
+          cd static
+          python3 << 'PYTHONEOF'
+          import os
+          import json
+
+          data = {}
+          static_dir = '.'
+
+          for item in os.listdir(static_dir):
+              item_path = os.path.join(static_dir, item)
+              if os.path.isdir(item_path) and not item.startswith('.'):
+                  files = []
+                  for file in os.listdir(item_path):
+                      file_path = os.path.join(item_path, file)
+                      if os.path.isfile(file_path) and not file.startswith('.'):
+                          files.append(file)
+                  if files:
+                      data[item] = sorted(files)
+
+          file_data_json = json.dumps(data)
+          # Escape </ sequence to prevent breaking out of script tag (valid in JSON)
+          file_data_json = file_data_json.replace('</', '<\\/')
+          
+          with open('index.html', 'r') as f:
+              content = f.read()
+          
+          content = content.replace('FILE_DATA_PLACEHOLDER', file_data_json)
+          
+          with open('index.html', 'w') as f:
+              f.write(content)
+          PYTHONEOF
+          cd ..
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
