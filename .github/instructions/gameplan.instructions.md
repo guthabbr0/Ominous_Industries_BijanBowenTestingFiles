@@ -95,6 +95,9 @@ graph LR
     E --> F[Update Video Description]
 ```
 
+**Text representation** (if diagram doesn't render):
+`Create Video → Build Demo → Test Locally → Commit to Main → Auto Deploy → Update Video Description`
+
 ### Steps in Detail
 
 1. **Create Video** - Record and edit YouTube content
