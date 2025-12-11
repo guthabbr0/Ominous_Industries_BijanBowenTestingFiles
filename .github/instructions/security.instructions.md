@@ -378,7 +378,7 @@ For security issues, contact repository maintainers directly rather than creatin
 | **XSS** | Script injection | Escape outputs, CSP |
 | **CSRF** | Unauthorized actions | Tokens, SameSite cookies |
 | **Path Traversal** | File access | Validate paths |
-| **Dependency** | Supply chain | Audit, pin versions |
+| **Dependency** | Supply chain | Audit, pin versions, use lockfiles, regular security updates |
 | **Secrets** | Credential exposure | Environment variables |
 | **Injection** | Command execution | Parameterized queries |
 
