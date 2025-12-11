@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2.5D Isometric Evolution</title>
+    <style>
+        :root {
+            --bg: #121212;
+            --panel: #1e1e1e;
+            --text: #e0e0e0;
+            --accent: #00e5ff;
+            --border: #333;
+        }
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            height: 100vh;
+        }
+        #sim-container {
+            flex-grow: 1;
+            position: relative;
+            background: #000;
+            overflow: hidden;
+        }
+        canvas#simCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        #ui-panel {
+            width: 320px;
+            background-color: var(--panel);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            box-shadow: -4px 0 20px rgba(0,0,0,0.6);
+            z-index: 10;
+        }
+        h2, h3 { margin: 0 0 10px 0; font-weight: 400; color: var(--accent); letter-spacing: 1px; }
+        h3 { font-size: 0.9rem; color: #888; margin-top: 15px; }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #2a2a2a;
+            padding-bottom: 2px;
+        }
+        .stat-val { font-family: 'Consolas', monospace; color: #fff; }
+
+        .monitor-wrapper {
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        canvas.monitor { display: block; width: 100%; }
+
+        #netCanvas { height: 180px; }
+        #graphCanvas { height: 120px; }
+
+        .legend { font-size: 0.75rem; color: #666; margin-top: -5px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="sim-container">
+    <canvas id="simCanvas"></canvas>
+</div>
+
+<div id="ui-panel">
+    <h2>Simulation Status</h2>
+    <div class="stat-row"><span>Generation</span><span id="disp-gen" class="stat-val">0</span></div>
+    <div class="stat-row"><span>Population</span><span id="disp-pop" class="stat-val">0</span></div>
+    <div class="stat-row"><span>Avg Energy</span><span id="disp-en" class="stat-val">0</span></div>
+    <div class="stat-row"><span>Max Fitness (Age)</span><span id="disp-fit" class="stat-val">0</span></div>
+
+    <h3>Live History</h3>
+    <div class="monitor-wrapper">
+        <canvas id="graphCanvas"></canvas>
+    </div>
+    <div class="legend" style="display:flex; justify-content:space-between;">
+        <span style="color:#00e5ff">Cyan: Pop</span>
+        <span style="color:#d65db1">Purple: Energy</span>
+    </div>
+
+    <h3>Fittest Network</h3>
+    <div class="monitor-wrapper">
+        <canvas id="netCanvas"></canvas>
+    </div>
+    <div class="legend">
+        Inputs: Ray Sensors (Wall, Food, Agent)<br>
+        Outputs: Thrust, Rotate
+    </div>
+</div>
+
+<script>
+/* ==========================================
+   CONFIGURATION
+   ========================================== */
+const CFG = {
+    arenaSize: 1000,
+    initPop: 30,
+    foodCount: 60,
+    foodEnergy: 60,
+    startEnergy: 100,
+    maxSpeed: 4.5,
+    turnRate: 0.15,
+    sensorCount: 8,
+    sensorRange: 200,
+    reproThreshold: 200,
+    reproCost: 100,
+    mutationRate: 0.1, // Probability of mutating a weight
+    mutationStrength: 0.4, // Max amount to change a weight
+    inputNodes: 24, // 8 sensors * 3 types (Wall, Food, Agent)
+    hiddenNodes: 14,
+    outputNodes: 2, // Thrust, Turn
+};
+
+/* ==========================================
+   MATH UTILS
+   ========================================== */
+const PI2 = Math.PI * 2;
+const rand = (min, max) => Math.random() * (max - min) + min;
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+/* ==========================================
+   NEURAL NETWORK
+   ========================================== */
+class NeuralNetwork {
+    constructor(inputCount, hiddenCount, outputCount) {
+        this.inputCount = inputCount;
+        this.hiddenCount = hiddenCount;
+        this.outputCount = outputCount;
+        
+        // We hold weights in a single Float32Array to represent the "Genome" clearly
+        // Layout: [Input->Hidden Weights (IxH)] + [Hidden Biases (H)] + [Hidden->Output Weights (HxO)] + [Output Biases (O)]
+        this.totalWeights = (inputCount * hiddenCount) + hiddenCount + (hiddenCount * outputCount) + outputCount;
+        this.genome = new Float32Array(this.totalWeights);
+        
+        this.randomize();
+    }
+
+    randomize() {
+        for(let i=0; i<this.genome.length; i++) {
+            this.genome[i] = rand(-1, 1);
+        }
+    }
+
+    // Create a copy with mutation
+    clone() {
+        const copy = new NeuralNetwork(this.inputCount, this.hiddenCount, this.outputCount);
+        for(let i=0; i<this.genome.length; i++) {
+            let gene = this.genome[i];
+            if (Math.random() < CFG.mutationRate) {
+                gene += rand(-CFG.mutationStrength, CFG.mutationStrength);
+            }
+            copy.genome[i] = gene; // Weights are not clamped, allowing drift
+        }
+        return copy;
+    }
+
+    feedForward(inputs) {
+        let ptr = 0;
+        
+        // Input -> Hidden
+        let hidden = new Float32Array(this.hiddenCount);
+        for(let h=0; h<this.hiddenCount; h++) {
+            let sum = 0;
+            for(let i=0; i<this.inputCount; i++) {
+                sum += inputs[i] * this.genome[ptr++];
+            }
+            sum += this.genome[ptr++]; // Bias
+            hidden[h] = Math.tanh(sum);
+        }
+
+        // Hidden -> Output
+        let outputs = new Float32Array(this.outputCount);
+        for(let o=0; o<this.outputCount; o++) {
+            let sum = 0;
+            for(let h=0; h<this.hiddenCount; h++) {
+                sum += hidden[h] * this.genome[ptr++];
+            }
+            sum += this.genome[ptr++]; // Bias
+            outputs[o] = Math.tanh(sum);
+        }
+        
+        return outputs;
+    }
+}
+
+/* ==========================================
+   ENTITIES
+   ========================================== */
+class Particle {
+    constructor(x, y, z, color) {
+        this.x = x; this.y = y; this.z = z;
+        this.vx = rand(-2, 2);
+        this.vy = rand(-2, 2);
+        this.vz = rand(2, 5);
+        this.life = 1.0;
+        this.color = color;
+    }
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.z += this.vz;
+        this.vz -= 0.3; // Gravity
+        if (this.z < 0) { this.z = 0; this.vz *= -0.6; }
+        this.life -= 0.03;
+    }
+}
+
+class Food {
+    constructor() {
+        this.x = rand(50, CFG.arenaSize - 50);
+        this.y = rand(50, CFG.arenaSize - 50);
+        this.size = 6;
+    }
+    respawn() {
+        this.x = rand(50, CFG.arenaSize - 50);
+        this.y = rand(50, CFG.arenaSize - 50);
+    }
+}
+
+class Creature {
+    constructor(x, y, brain = null, hue = null) {
+        this.x = x || rand(50, CFG.arenaSize - 50);
+        this.y = y || rand(50, CFG.arenaSize - 50);
+        this.angle = rand(0, PI2);
+        this.energy = CFG.startEnergy;
+        this.alive = true;
+        this.age = 0;
+        this.size = 10;
+        this.hue = hue !== null ? hue : rand(0, 360);
+        
+        if (brain) {
+            this.brain = brain.clone();
+            this.hue += rand(-15, 15); // Hue drift
+            if (this.hue < 0) this.hue += 360;
+        } else {
+            this.brain = new NeuralNetwork(CFG.inputNodes, CFG.hiddenNodes, CFG.outputNodes);
+        }
+    }
+
+    update(walls, foods, others) {
+        if (!this.alive) return;
+        this.age++;
+        
+        // 1. Sense
+        const sensors = this.sense(foods, others);
+
+        // 2. Think
+        const outputs = this.brain.feedForward(sensors);
+        const thrust = outputs[0]; // -1 to 1
+        const turn = outputs[1];   // -1 to 1
+
+        // 3. Act
+        this.angle += turn * CFG.turnRate;
+        // Map thrust: -1..1 -> 0..1 (no reverse for simplicity, or slow reverse)
+        const speed = Math.max(0, thrust) * CFG.maxSpeed;
+        
+        this.x += Math.cos(this.angle) * speed;
+        this.y += Math.sin(this.angle) * speed;
+
+        // Wall collisions (Clamp)
+        if (this.x < 10) this.x = 10;
+        if (this.x > CFG.arenaSize - 10) this.x = CFG.arenaSize - 10;
+        if (this.y < 10) this.y = 10;
+        if (this.y > CFG.arenaSize - 10) this.y = CFG.arenaSize - 10;
+
+        // Energy Cost
+        this.energy -= 0.15; // Metabolism
+        this.energy -= speed * 0.05; // Movement tax
+
+        if (this.energy <= 0) this.alive = false;
+    }
+
+    sense(foods, others) {
+        // 8 Rays. Each returns [WallDist, FoodDist, AgentDist]
+        // Encoded as proximity 0..1 (1=touching, 0=far/none)
+        const inputs = new Float32Array(CFG.inputNodes);
+        
+        for (let i = 0; i < CFG.sensorCount; i++) {
+            const angle = this.angle + (i / CFG.sensorCount) * PI2;
+            const dx = Math.cos(angle);
+            const dy = Math.sin(angle);
+            
+            let distWall = CFG.sensorRange;
+            let distFood = CFG.sensorRange;
+            let distAgent = CFG.sensorRange;
+
+            // --- Raycast Walls ---
+            // Box arena: x=0, x=SIZE, y=0, y=SIZE
+            // Ray: P + t*D. Find smallest positive t
+            if (dx !== 0) {
+                const tx = (dx > 0 ? CFG.arenaSize - this.x : -this.x) / dx;
+                if (tx > 0 && tx < distWall) distWall = tx;
+            }
+            if (dy !== 0) {
+                const ty = (dy > 0 ? CFG.arenaSize - this.y : -this.y) / dy;
+                if (ty > 0 && ty < distWall) distWall = ty;
+            }
+
+            // --- Raycast Circles (Food & Agents) ---
+            // Generic function to find intersection t
+            const checkCircles = (entities, size) => {
+                let closest = CFG.sensorRange;
+                for (let e of entities) {
+                    if (e === this) continue;
+                    // Vector to circle center
+                    const vx = e.x - this.x;
+                    const vy = e.y - this.y;
+                    
+                    // Optim: Bounding check
+                    if (Math.abs(vx) > CFG.sensorRange || Math.abs(vy) > CFG.sensorRange) continue;
+
+                    // Project v onto ray direction
+                    // dx,dy are unit vectors
+                    const t = vx * dx + vy * dy;
+                    
+                    if (t > 0 && t < closest) {
+                        // Closest point on ray to center
+                        const px = this.x + t * dx;
+                        const py = this.y + t * dy;
+                        const distSq = (px - e.x)**2 + (py - e.y)**2;
+                        const radSq = size*size;
+                        
+                        if (distSq < radSq) {
+                            // Ray hits circle. 
+                            // Exact distance to surface is roughly t - sqrt(r^2 - distSq)
+                            const offset = Math.sqrt(radSq - distSq);
+                            const hitDist = t - offset;
+                            if (hitDist < closest && hitDist > 0) closest = hitDist;
+                        }
+                    }
+                }
+                return closest;
+            };
+
+            distFood = checkCircles(foods, 6);
+            distAgent = checkCircles(others, 10);
+
+            // Invert distance to 0..1 (1 is close)
+            const idx = i * 3;
+            inputs[idx] = 1 - (distWall / CFG.sensorRange);
+            inputs[idx+1] = (distFood < CFG.sensorRange) ? 1 - (distFood / CFG.sensorRange) : 0;
+            inputs[idx+2] = (distAgent < CFG.sensorRange) ? 1 - (distAgent / CFG.sensorRange) : 0;
+        }
+        return inputs;
+    }
+}
+
+/* ==========================================
+   RENDERER (2.5D Isometric)
+   ========================================== */
+class IsoRenderer {
+    constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d', { alpha: false });
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+    }
+
+    resize() {
+        this.canvas.width = this.canvas.parentElement.clientWidth;
+        this.canvas.height = this.canvas.parentElement.clientHeight;
+        this.cx = this.canvas.width / 2;
+        this.cy = 100; // Top offset
+        // Zoom factor
+        this.scale = Math.min(this.canvas.width, this.canvas.height) / (CFG.arenaSize * 1.5);
+    }
+
+    // Convert World (x,y,z) -> Screen (u,v)
+    toIso(x, y, z) {
+        // Rotate 45 deg and squash
+        const isoX = (x - y) * Math.cos(Math.PI/6);
+        const isoY = (x + y) * Math.sin(Math.PI/6) - z;
+        return {
+            x: this.cx + isoX * this.scale, 
+            y: this.cy + isoY * this.scale
+        };
+    }
+
+    draw(creatures, foods, particles) {
+        const ctx = this.ctx;
+        ctx.fillStyle = '#111';
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw Arena Floor
+        ctx.strokeStyle = '#444';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        const corners = [
+            this.toIso(0, 0, 0), this.toIso(CFG.arenaSize, 0, 0),
+            this.toIso(CFG.arenaSize, CFG.arenaSize, 0), this.toIso(0, CFG.arenaSize, 0)
+        ];
+        ctx.moveTo(corners[0].x, corners[0].y);
+        ctx.lineTo(corners[1].x, corners[1].y);
+        ctx.lineTo(corners[2].x, corners[2].y);
+        ctx.lineTo(corners[3].x, corners[3].y);
+        ctx.closePath();
+        ctx.stroke();
+
+        // Draw Grid
+        ctx.strokeStyle = '#222';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for(let i=0; i<=CFG.arenaSize; i+=100) {
+            let s = this.toIso(i, 0, 0); let e = this.toIso(i, CFG.arenaSize, 0);
+            ctx.moveTo(s.x, s.y); ctx.lineTo(e.x, e.y);
+            s = this.toIso(0, i, 0); e = this.toIso(CFG.arenaSize, i, 0);
+            ctx.moveTo(s.x, s.y); ctx.lineTo(e.x, e.y);
+        }
+        ctx.stroke();
+
+        // Create Render List for depth sorting
+        // Depth ~ x + y
+        let items = [];
+        for(let f of foods) items.push({type:'f', obj:f, d:f.x+f.y});
+        for(let c of creatures) items.push({type:'c', obj:c, d:c.x+c.y});
+        for(let p of particles) items.push({type:'p', obj:p, d:p.x+p.y});
+
+        items.sort((a,b) => a.d - b.d);
+
+        for(let item of items) {
+            if(item.type === 'f') this.drawFood(ctx, item.obj);
+            else if(item.type === 'c') this.drawCreature(ctx, item.obj);
+            else this.drawParticle(ctx, item.obj);
+        }
+    }
+
+    drawFood(ctx, f) {
+        const center = this.toIso(f.x, f.y, 5 + Math.sin(Date.now()*0.005 + f.x)*2);
+        const shadow = this.toIso(f.x, f.y, 0);
+        
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.beginPath();
+        ctx.ellipse(shadow.x, shadow.y, 5*this.scale, 3*this.scale, 0, 0, PI2);
+        ctx.fill();
+
+        // Food Body (Green Diamond/Sphere)
+        ctx.fillStyle = '#0f0';
+        ctx.beginPath();
+        ctx.arc(center.x, center.y, 4*this.scale, 0, PI2);
+        ctx.fill();
+    }
+
+    drawCreature(ctx, c) {
+        // Height based on energy
+        const height = Math.max(5, Math.min(60, c.energy * 0.4));
+        const r = c.size * this.scale * 0.8;
+        
+        const base = this.toIso(c.x, c.y, 0);
+        const top = this.toIso(c.x, c.y, height);
+
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.beginPath();
+        ctx.ellipse(base.x, base.y, r*1.2, r*0.6, 0, 0, PI2);
+        ctx.fill();
+
+        const color = `hsl(${c.hue}, 75%, 50%)`;
+        const sideColor = `hsl(${c.hue}, 75%, 35%)`;
+
+        // Draw Cylinder Body (Side)
+        // A simple rect connecting bounding widths of top and bottom ellipses
+        ctx.fillStyle = sideColor;
+        ctx.beginPath();
+        ctx.moveTo(base.x - r, base.y);
+        ctx.lineTo(base.x + r, base.y);
+        ctx.lineTo(top.x + r, top.y);
+        ctx.lineTo(top.x - r, top.y);
+        ctx.fill();
+
+        // Top Cap
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.ellipse(top.x, top.y, r, r*0.5, 0, 0, PI2);
+        ctx.fill();
+
+        // Direction Indicator (Eye)
+        const eyeOffX = Math.cos(c.angle) * c.size * 0.8;
+        const eyeOffY = Math.sin(c.angle) * c.size * 0.8;
+        const eyePos = this.toIso(c.x + eyeOffX, c.y + eyeOffY, height - 2);
+        
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(eyePos.x, eyePos.y, 2*this.scale, 0, PI2);
+        ctx.fill();
+    }
+
+    drawParticle(ctx, p) {
+        const pos = this.toIso(p.x, p.y, p.z);
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, 2*this.scale, 0, PI2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+    }
+}
+
+/* ==========================================
+   SIMULATION CONTROLLER
+   ========================================== */
+class Simulation {
+    constructor() {
+        this.creatures = [];
+        this.foods = [];
+        this.particles = [];
+        this.stats = {
+            generation: 1,
+            historyPop: [],
+            historyFit: []
+        };
+        
+        this.renderer = new IsoRenderer('simCanvas');
+        
+        // Init
+        for(let i=0; i<CFG.initPop; i++) this.creatures.push(new Creature());
+        for(let i=0; i<CFG.foodCount; i++) this.foods.push(new Food());
+
+        this.lastTime = 0;
+        this.loop = this.loop.bind(this);
+        requestAnimationFrame(this.loop);
+    }
+
+    spawnParticles(x, y, color, count) {
+        for(let i=0; i<count; i++) this.particles.push(new Particle(x, y, 10, color));
+    }
+
+    loop(time) {
+        const dt = time - this.lastTime;
+        this.lastTime = time;
+
+        let maxEnergy = 0;
+        let fittest = null;
+        let totalEnergy = 0;
+
+        // 1. Update Creatures
+        // Iterate backwards to allow removal
+        for (let i = this.creatures.length - 1; i >= 0; i--) {
+            const c = this.creatures[i];
+            
+            c.update(null, this.foods, this.creatures);
+
+            // Eat
+            for (let j = this.foods.length - 1; j >= 0; j--) {
+                const f = this.foods[j];
+                const distSq = (c.x - f.x)**2 + (c.y - f.y)**2;
+                if (distSq < (c.size + f.size)**2) {
+                    c.energy += CFG.foodEnergy;
+                    this.foods[j].respawn();
+                    this.spawnParticles(f.x, f.y, '#0f0', 4);
+                }
+            }
+
+            // Reproduce
+            if (c.energy > CFG.reproThreshold) {
+                c.energy -= CFG.reproCost;
+                const child = new Creature(c.x, c.y, c.brain, c.hue);
+                child.energy = CFG.reproCost;
+                this.creatures.push(child);
+                this.spawnParticles(c.x, c.y, '#fff', 8);
+            }
+
+            // Stats tracking
+            if (c.alive) {
+                totalEnergy += c.energy;
+                if (c.age > maxEnergy) { // Use Age as Fitness Metric
+                    maxEnergy = c.age;
+                    fittest = c;
+                }
+            } else {
+                this.spawnParticles(c.x, c.y, '#555', 6);
+                this.creatures.splice(i, 1);
+            }
+        }
+
+        // Extinction Event -> Reset
+        if (this.creatures.length === 0) {
+            this.stats.generation++;
+            for(let i=0; i<CFG.initPop; i++) this.creatures.push(new Creature());
+        }
+
+        // 2. Update Particles
+        for(let i=this.particles.length-1; i>=0; i--) {
+            this.particles[i].update();
+            if(this.particles[i].life <= 0) this.particles.splice(i, 1);
+        }
+
+        // 3. Render
+        this.renderer.draw(this.creatures, this.foods, this.particles);
+
+        // 4. UI Updates (Throttle to every 10 frames roughly or just run)
+        this.updateUI(fittest, maxEnergy, totalEnergy);
+        
+        requestAnimationFrame(this.loop);
+    }
+
+    updateUI(fittest, maxFit, totalEn) {
+        document.getElementById('disp-gen').innerText = this.stats.generation;
+        document.getElementById('disp-pop').innerText = this.creatures.length;
+        document.getElementById('disp-en').innerText = this.creatures.length ? Math.floor(totalEn / this.creatures.length) : 0;
+        document.getElementById('disp-fit').innerText = maxFit;
+
+        // Push history occasionally
+        if (Math.random() < 0.05) {
+            this.stats.historyPop.push(this.creatures.length);
+            this.stats.historyFit.push(this.creatures.length ? totalEn / this.creatures.length : 0);
+            if (this.stats.historyPop.length > 100) {
+                this.stats.historyPop.shift();
+                this.stats.historyFit.shift();
+            }
+            this.drawGraph();
+        }
+
+        if (fittest) this.drawNetwork(fittest.brain);
+    }
+
+    drawGraph() {
+        const cvs = document.getElementById('graphCanvas');
+        const ctx = cvs.getContext('2d');
+        const w = cvs.width = cvs.clientWidth;
+        const h = cvs.height = cvs.clientHeight;
+
+        ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+        
+        const drawLine = (data, color, maxVal) => {
+            if (data.length < 2) return;
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            for(let i=0; i<data.length; i++) {
+                const x = (i / (data.length - 1)) * w;
+                const y = h - (data[i] / maxVal) * h;
+                if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+            }
+            ctx.stroke();
+        };
+
+        const maxPop = Math.max(50, ...this.stats.historyPop);
+        const maxFit = Math.max(200, ...this.stats.historyFit);
+
+        drawLine(this.stats.historyPop, '#00e5ff', maxPop);
+        drawLine(this.stats.historyFit, '#d65db1', maxFit);
+    }
+
+    drawNetwork(brain) {
+        const cvs = document.getElementById('netCanvas');
+        const ctx = cvs.getContext('2d');
+        const w = cvs.width = cvs.clientWidth;
+        const h = cvs.height = cvs.clientHeight;
+        ctx.clearRect(0,0,w,h);
+
+        // Visualize weights. We need to unpack the flattened array essentially
+        // Structure: Input(24) -> Hidden(14) -> Output(2)
+        
+        let ptr = 0;
+        const layerX = [20, w/2, w-20];
+        
+        const getY = (idx, total) => (h / (total+1)) * (idx+1);
+
+        // Draw I->H
+        for(let hid=0; hid<CFG.hiddenNodes; hid++) {
+            const hy = getY(hid, CFG.hiddenNodes);
+            for(let inp=0; inp<CFG.inputNodes; inp++) {
+                const weight = brain.genome[ptr++];
+                if (Math.abs(weight) > 0.3) { // Threshold for clarity
+                    const iy = getY(inp, CFG.inputNodes);
+                    ctx.strokeStyle = weight > 0 ? '#0f0' : '#f00';
+                    ctx.globalAlpha = Math.abs(weight) * 0.5;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.moveTo(layerX[0], iy); ctx.lineTo(layerX[1], hy); ctx.stroke();
+                }
+            }
+            ptr++; // Skip bias for viz
+        }
+        ctx.globalAlpha = 1.0;
+
+        // Draw H->O
+        for(let out=0; out<CFG.outputNodes; out++) {
+            const oy = getY(out, CFG.outputNodes);
+            for(let hid=0; hid<CFG.hiddenNodes; hid++) {
+                const weight = brain.genome[ptr++];
+                const hy = getY(hid, CFG.hiddenNodes);
+                ctx.strokeStyle = weight > 0 ? '#0f0' : '#f00';
+                ctx.lineWidth = Math.abs(weight) * 2;
+                ctx.beginPath(); ctx.moveTo(layerX[1], hy); ctx.lineTo(layerX[2], oy); ctx.stroke();
+            }
+            ptr++; // Bias
+        }
+
+        // Draw Nodes
+        ctx.fillStyle = '#fff';
+        for(let i=0; i<CFG.inputNodes; i++) {
+            ctx.beginPath(); ctx.arc(layerX[0], getY(i, CFG.inputNodes), 2, 0, PI2); ctx.fill();
+        }
+        for(let i=0; i<CFG.hiddenNodes; i++) {
+            ctx.beginPath(); ctx.arc(layerX[1], getY(i, CFG.hiddenNodes), 3, 0, PI2); ctx.fill();
+        }
+        for(let i=0; i<CFG.outputNodes; i++) {
+            ctx.beginPath(); ctx.arc(layerX[2], getY(i, CFG.outputNodes), 4, 0, PI2); ctx.fill();
+            ctx.fillStyle = '#aaa'; ctx.font = '10px sans-serif';
+            ctx.fillText(i===0?"Thrust":"Turn", layerX[2]-30, getY(i, CFG.outputNodes)-8);
+            ctx.fillStyle = '#fff';
+        }
+    }
+}
+
+// Start
+window.onload = () => new Simulation();
+
+</script>
+</body>
+</html>

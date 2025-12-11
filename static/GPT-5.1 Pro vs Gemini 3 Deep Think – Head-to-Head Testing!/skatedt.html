@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WinOS 95 - skate.exe</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        /* --- SYSTEM STYLES (Windows 95 Aesthetic) --- */
+        :root {
+            --bg-teal: #008080;
+            --win-gray: #c0c0c0;
+            --win-blue: #000080;
+            --border-light: #ffffff;
+            --border-dark: #808080;
+            --border-black: #000000;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-teal);
+            user-select: none;
+            cursor: default;
+        }
+
+        /* --- DESKTOP --- */
+        #desktop {
+            width: 100vw;
+            height: calc(100vh - 40px);
+            padding: 20px;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .icon {
+            width: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            color: white;
+            text-shadow: 1px 1px 0px black;
+            margin-bottom: 20px;
+        }
+
+        .icon-img {
+            width: 32px;
+            height: 32px;
+            margin-bottom: 5px;
+            /* CSS Pixel Art Skateboard */
+            background: linear-gradient(to right, #333 40%, #555 60%);
+            border: 2px solid #fff;
+            position: relative;
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        /* Wheels */
+        .icon-img::before, .icon-img::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            width: 6px;
+            height: 6px;
+            background: red;
+            border-radius: 50%;
+            border: 1px solid black;
+        }
+        .icon-img::before { left: 4px; }
+        .icon-img::after { right: 4px; }
+
+        .icon-label {
+            font-size: 12px;
+            text-align: center;
+            padding: 2px;
+            border: 1px dotted transparent;
+        }
+
+        .icon:active .icon-label {
+            background-color: var(--win-blue);
+            border-color: white;
+        }
+
+        /* --- WINDOW SYSTEM --- */
+        .window {
+            position: absolute;
+            top: 60px;
+            left: 100px;
+            width: 640px;
+            height: 480px;
+            background-color: var(--win-gray);
+            border-top: 2px solid var(--border-light);
+            border-left: 2px solid var(--border-light);
+            border-right: 2px solid var(--border-black);
+            border-bottom: 2px solid var(--border-black);
+            box-shadow: 4px 4px 10px rgba(0,0,0,0.5);
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            z-index: 100;
+        }
+
+        .title-bar {
+            height: 24px;
+            background: linear-gradient(90deg, var(--win-blue), #1084d0);
+            padding: 2px 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: default;
+        }
+
+        .controls button {
+            width: 18px;
+            height: 18px;
+            background-color: var(--win-gray);
+            border-top: 1px solid var(--border-light);
+            border-left: 1px solid var(--border-light);
+            border-right: 1px solid var(--border-black);
+            border-bottom: 1px solid var(--border-black);
+            font-weight: bold;
+            font-size: 11px;
+            line-height: 14px;
+            cursor: pointer;
+            margin-left: 2px;
+        }
+
+        .controls button:active {
+            border-top: 1px solid var(--border-black);
+            border-left: 1px solid var(--border-black);
+            border-right: 1px solid var(--border-light);
+            border-bottom: 1px solid var(--border-light);
+            transform: translate(1px, 1px);
+        }
+
+        .window-content {
+            flex-grow: 1;
+            margin: 4px;
+            background-color: #000;
+            border: 2px inset var(--border-dark);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* --- TASKBAR --- */
+        #taskbar {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 40px;
+            background-color: var(--win-gray);
+            border-top: 2px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            padding: 0 4px;
+            z-index: 1000;
+        }
+
+        .start-btn {
+            padding: 4px 8px;
+            font-weight: bold;
+            font-size: 14px;
+            background-color: var(--win-gray);
+            border-top: 2px solid var(--border-light);
+            border-left: 2px solid var(--border-light);
+            border-right: 2px solid var(--border-black);
+            border-bottom: 2px solid var(--border-black);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 1px 1px 0px black;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .start-btn:active {
+            border-top: 2px solid var(--border-black);
+            border-left: 2px solid var(--border-black);
+            border-right: 2px solid var(--border-light);
+            border-bottom: 2px solid var(--border-light);
+            transform: translate(1px, 1px);
+        }
+
+        .clock {
+            margin-left: auto;
+            border: 2px inset var(--border-dark);
+            padding: 4px 10px;
+            background: var(--win-gray);
+            font-size: 12px;
+        }
+
+        /* --- GAME OVERLAY --- */
+        #game-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #0f0;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            pointer-events: none;
+            z-index: 10;
+            text-shadow: 1px 1px 0 #000;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="desktop">
+        <div class="icon" ondblclick="os.openApp('skate')">
+            <div class="icon-img"></div>
+            <div class="icon-label">skate.exe</div>
+        </div>
+        
+        <div class="icon">
+            <div class="icon-img" style="background: goldenrod; border-radius: 0; border: 2px solid white;"></div>
+            <div class="icon-label">My Computer</div>
+        </div>
+    </div>
+
+    <div id="window-skate" class="window">
+        <div class="title-bar" id="header-skate" onmousedown="os.dragStart(event, 'window-skate')">
+            <span>skate.exe - [3D Simulation]</span>
+            <div class="controls">
+                <button onclick="os.minimizeApp('skate')">_</button>
+                <button onclick="os.closeApp('skate')">X</button>
+            </div>
+        </div>
+        <div class="window-content" id="game-container">
+            <div id="game-overlay">
+                CONTROLS:<br>
+                [W] Accelerate<br>
+                [S] Brake/Reverse<br>
+                [A/D] Turn<br>
+                [SPACE] Jump
+            </div>
+            </div>
+    </div>
+
+    <div id="taskbar">
+        <div class="start-btn">
+            <span style="font-weight:900; font-style:italic; font-family:serif;">W</span> Start
+        </div>
+        <div class="clock" id="taskbar-time">12:00 PM</div>
+    </div>
+
+<script>
+    // --- OS LOGIC ---
+    const os = {
+        activeZIndex: 100,
+        
+        openApp: function(appName) {
+            const win = document.getElementById(`window-${appName}`);
+            if(win) {
+                win.style.display = 'flex';
+                this.bringToFront(win);
+                
+                // Skate.exe specific logic
+                if(appName === 'skate') {
+                    if(!skateGame.initialized) {
+                        skateGame.init();
+                    }
+                    if(!skateGame.running) {
+                        skateGame.running = true;
+                        skateGame.animate();
+                    }
+                }
+            }
+        },
+
+        closeApp: function(appName) {
+            const win = document.getElementById(`window-${appName}`);
+            if(win) {
+                win.style.display = 'none';
+                if(appName === 'skate') {
+                    skateGame.running = false; // Pause game loop to save battery/cpu
+                }
+            }
+        },
+
+        minimizeApp: function(appName) {
+            // Functionally same as close for this demo (hides window)
+            this.closeApp(appName);
+        },
+
+        bringToFront: function(element) {
+            this.activeZIndex++;
+            element.style.zIndex = this.activeZIndex;
+        },
+
+        dragStart: function(e, windowId) {
+            e.preventDefault();
+            const win = document.getElementById(windowId);
+            this.bringToFront(win);
+            
+            let startX = e.clientX;
+            let startY = e.clientY;
+            let startLeft = win.offsetLeft;
+            let startTop = win.offsetTop;
+
+            function doDrag(e) {
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                win.style.left = `${startLeft + dx}px`;
+                win.style.top = `${startTop + dy}px`;
+            }
+
+            function stopDrag() {
+                document.removeEventListener('mousemove', doDrag);
+                document.removeEventListener('mouseup', stopDrag);
+            }
+
+            document.addEventListener('mousemove', doDrag);
+            document.addEventListener('mouseup', stopDrag);
+        }
+    };
+
+    // Update Clock
+    setInterval(() => {
+        const now = new Date();
+        document.getElementById('taskbar-time').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }, 1000);
+
+    // --- SKATE.EXE GAME ENGINE (Three.js) ---
+    const skateGame = {
+        initialized: false,
+        running: false,
+        container: null,
+        scene: null,
+        camera: null,
+        renderer: null,
+        player: null,
+        keys: { w: false, a: false, s: false, d: false, space: false },
+        
+        // Physics State
+        velocity: new THREE.Vector3(0,0,0),
+        onGround: true,
+        obstacles: [],
+
+        init: function() {
+            this.container = document.getElementById('game-container');
+            const width = this.container.clientWidth;
+            const height = this.container.clientHeight;
+
+            // 1. Scene Setup
+            this.scene = new THREE.Scene();
+            this.scene.background = new THREE.Color(0x87CEEB); // Sky Blue
+            this.scene.fog = new THREE.Fog(0x87CEEB, 20, 100);
+
+            // 2. Camera
+            this.camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
+            this.camera.position.set(0, 5, 10);
+
+            // 3. Renderer
+            this.renderer = new THREE.WebGLRenderer({ antialias: true });
+            this.renderer.setSize(width, height);
+            this.renderer.shadowMap.enabled = true;
+            this.container.appendChild(this.renderer.domElement);
+
+            // 4. Lights
+            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+            this.scene.add(ambient);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(20, 30, 10);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            this.scene.add(dirLight);
+
+            // 5. Objects
+            
+            // Floor
+            const floorGeo = new THREE.PlaneGeometry(200, 200);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            this.scene.add(floor);
+
+            // Grid
+            const grid = new THREE.GridHelper(200, 20);
+            this.scene.add(grid);
+
+            // Player Group (Center point is at floor level)
+            this.player = new THREE.Group();
+            
+            // Board
+            const boardGeo = new THREE.BoxGeometry(1.5, 0.2, 3.5);
+            const boardMat = new THREE.MeshStandardMaterial({ color: 0x8B0000 }); // Dark Red
+            const board = new THREE.Mesh(boardGeo, boardMat);
+            board.position.y = 0.2;
+            board.castShadow = true;
+            this.player.add(board);
+
+            // Wheels
+            const wheelGeo = new THREE.CylinderGeometry(0.2, 0.2, 1.6);
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+            const w1 = new THREE.Mesh(wheelGeo, wheelMat); w1.rotation.z = Math.PI/2; w1.position.set(0, 0.2, 1);
+            const w2 = new THREE.Mesh(wheelGeo, wheelMat); w2.rotation.z = Math.PI/2; w2.position.set(0, 0.2, -1);
+            this.player.add(w1);
+            this.player.add(w2);
+
+            // Skater Body (Abstract Block)
+            const bodyGeo = new THREE.BoxGeometry(1, 2.5, 1);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xFFD700 }); // Gold
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 1.55; 
+            body.castShadow = true;
+            this.player.add(body);
+
+            this.scene.add(this.player);
+
+            // Obstacles
+            const obsGeo = new THREE.BoxGeometry(2, 2, 2);
+            const obsMat = new THREE.MeshStandardMaterial({ color: 0x4682B4 }); // Steel Blue
+            
+            for(let i=0; i<20; i++) {
+                const mesh = new THREE.Mesh(obsGeo, obsMat);
+                // Random positions
+                const x = (Math.random() - 0.5) * 80;
+                const z = (Math.random() - 0.5) * 80;
+                
+                // Don't spawn near center
+                if(Math.sqrt(x*x + z*z) < 10) continue;
+
+                mesh.position.set(x, 1, z);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                this.scene.add(mesh);
+                this.obstacles.push(new THREE.Box3().setFromObject(mesh));
+            }
+
+            // 6. Inputs
+            window.addEventListener('keydown', (e) => this.onKey(e, true));
+            window.addEventListener('keyup', (e) => this.onKey(e, false));
+
+            this.initialized = true;
+        },
+
+        onKey: function(e, pressed) {
+            if(!this.running) return;
+            const k = e.key.toLowerCase();
+            switch(k) {
+                case 'w': case 'arrowup': this.keys.w = pressed; break;
+                case 's': case 'arrowdown': this.keys.s = pressed; break;
+                case 'a': case 'arrowleft': this.keys.a = pressed; break;
+                case 'd': case 'arrowright': this.keys.d = pressed; break;
+                case ' ': this.keys.space = pressed; break;
+            }
+        },
+
+        animate: function() {
+            if(!this.running) return;
+            requestAnimationFrame(() => this.animate());
+
+            // Physics Constants
+            const speed = 0.5;
+            const friction = 0.95;
+            const gravity = 0.04;
+            const jumpForce = 0.6;
+            const turnSpeed = 0.05;
+
+            // 1. Steering
+            if(this.keys.a) this.player.rotation.y += turnSpeed;
+            if(this.keys.d) this.player.rotation.y -= turnSpeed;
+
+            // 2. Acceleration (Momentum based)
+            // Calculate forward direction vector
+            const forwardX = -Math.sin(this.player.rotation.y);
+            const forwardZ = -Math.cos(this.player.rotation.y);
+
+            if(this.keys.w) {
+                this.velocity.x += forwardX * 0.02;
+                this.velocity.z += forwardZ * 0.02;
+            }
+            if(this.keys.s) {
+                this.velocity.x -= forwardX * 0.01; // Slower braking/reverse
+                this.velocity.z -= forwardZ * 0.01;
+            }
+
+            // 3. Jump
+            if(this.keys.space && this.onGround) {
+                this.velocity.y = jumpForce;
+                this.onGround = false;
+            }
+
+            // 4. Gravity & Friction
+            this.velocity.y -= gravity;
+            this.velocity.x *= friction;
+            this.velocity.z *= friction;
+
+            // 5. Apply Movement (Candidate Position)
+            const oldPos = this.player.position.clone();
+            this.player.position.x += this.velocity.x;
+            this.player.position.z += this.velocity.z;
+            this.player.position.y += this.velocity.y;
+
+            // 6. Floor Collision
+            if(this.player.position.y < 0) {
+                this.player.position.y = 0;
+                this.velocity.y = 0;
+                this.onGround = true;
+            }
+
+            // 7. Obstacle Collision (Simple Bounding Box)
+            const playerBox = new THREE.Box3().setFromObject(this.player);
+            // Shrink player box slightly for more forgiving gameplay
+            playerBox.expandByScalar(-0.2);
+
+            let hit = false;
+            for(let obsBox of this.obstacles) {
+                if(playerBox.intersectsBox(obsBox)) {
+                    hit = true;
+                    break;
+                }
+            }
+
+            if(hit) {
+                // Bounce back logic
+                this.player.position.copy(oldPos);
+                this.velocity.x *= -0.5;
+                this.velocity.z *= -0.5;
+            }
+
+            // 8. Camera Follow (Lerp)
+            // Target position: Behind and above player
+            const relativeOffset = new THREE.Vector3(0, 5, 12);
+            const cameraOffset = relativeOffset.applyMatrix4(this.player.matrixWorld);
+            this.camera.position.lerp(cameraOffset, 0.1);
+            this.camera.lookAt(this.player.position);
+
+            this.renderer.render(this.scene, this.camera);
+        }
+    };
+</script>
+</body>
+</html>
