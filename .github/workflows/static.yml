@@ -1,5 +1,5 @@
 # There is no way this could work, right ?
-name: ${{ steps.deployment.outputs.page_url }}
+name: https://guthabbr0.github.io/Ominous_Industries_BijanBowenTestingFiles/
 
 on:
   # Runs on pushes targeting the default branch
