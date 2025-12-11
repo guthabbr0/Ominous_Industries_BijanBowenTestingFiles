@@ -541,13 +541,20 @@ function getFileExtension(filename) {
 ### Minimize DOM Operations
 
 ```javascript
-// ✅ Build HTML in memory, insert once
-const html = items.map(item => `<li>${escapeHtml(item)}</li>`).join('');
-container.innerHTML = html;
+// ✅ Build elements in memory, insert once
+const fragment = document.createDocumentFragment();
+items.forEach(item => {
+    const li = document.createElement('li');
+    li.textContent = item;
+    fragment.appendChild(li);
+});
+container.appendChild(fragment);
 
 // ❌ Avoid multiple DOM insertions
 items.forEach(item => {
-    container.innerHTML += `<li>${escapeHtml(item)}</li>`;
+    const li = document.createElement('li');
+    li.textContent = item;
+    container.appendChild(li);
 });
 ```
 
