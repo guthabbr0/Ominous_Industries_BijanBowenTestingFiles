@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RF Transmission Chain Simulator</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --panel-color: #1e1e1e;
+            --text-color: #e0e0e0;
+            --accent-color: #00ff41; /* Phosphor Green */
+            --warn-color: #ff3333;
+            --grid-color: #333;
+            --font-mono: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            font-family: var(--font-mono);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { margin-bottom: 5px; text-shadow: 0 0 5px var(--accent-color); text-transform: uppercase; }
+        .subtitle { font-size: 0.8em; color: #888; margin-bottom: 20px; }
+
+        /* Controls Area */
+        .controls {
+            background: var(--panel-color);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label { font-size: 0.75rem; color: #aaa; font-weight: bold; }
+
+        input[type="text"] {
+            background: #000;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 8px;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 1.1rem;
+            width: 180px;
+            outline: none;
+            text-transform: uppercase;
+        }
+
+        button {
+            background: var(--accent-color);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+        button:hover { background: #fff; }
+
+        input[type="range"] {
+            accent-color: var(--warn-color);
+            width: 200px;
+        }
+
+        /* Oscilloscope Stack */
+        .scope-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .scope {
+            position: relative;
+            background: #000;
+            border: 1px solid #444;
+            height: 90px;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Scope Labels */
+        .label-tag {
+            position: absolute;
+            top: 4px;
+            left: 5px;
+            font-size: 0.7rem;
+            background: rgba(0,0,0,0.85);
+            padding: 2px 6px;
+            border-left: 3px solid #777;
+            color: #ccc;
+            pointer-events: none;
+            user-select: none;
+            text-transform: uppercase;
+        }
+
+        /* Specific border colors for visual grouping */
+        .tag-green { border-color: var(--accent-color); color: var(--accent-color); }
+        .tag-red { border-color: var(--warn-color); color: var(--warn-color); }
+        .tag-yellow { border-color: #ffea00; color: #ffea00; }
+
+        /* Output Area */
+        .output-box {
+            margin-top: 20px;
+            width: 100%;
+            max-width: 800px;
+            background: var(--panel-color);
+            border: 1px solid var(--accent-color);
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .decoded-text { 
+            font-size: 2em; 
+            color: var(--accent-color); 
+            min-height: 1.2em; 
+            word-break: break-all; 
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-shadow: 0 0 5px var(--accent-color);
+        }
+        
+        .note { font-size: 0.8rem; color: #666; margin-top: 10px; }
+
+        /* CRT Grid Overlay */
+        .grid-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                linear-gradient(rgba(50, 50, 50, 0.3) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(50, 50, 50, 0.3) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>RF Simulator</h1>
+    <div class="subtitle">Physics Simulation: Binary &rarr; Modulation &rarr; Noise &rarr; Demodulation &rarr; Text</div>
+
+    <div class="controls">
+        <div class="control-group">
+            <label>Message (Max 8 Chars)</label>
+            <input type="text" id="inputMsg" value="SIGNAL" maxlength="8">
+        </div>
+        
+        <button id="btnTransmit">TRANSMIT</button>
+        
+        <div class="control-group">
+            <label>Noise Floor (Interference)</label>
+            <input type="range" id="noiseSlider" min="0" max="2.0" step="0.1" value="0.0">
+        </div>
+    </div>
+
+    <div class="scope-stack">
+        <div class="scope">
+            <div class="grid-overlay"></div>
+            <div class="label-tag tag-green">1. Encoding: Binary Baseband</div>
+            <canvas id="c1"></canvas>
+        </div>
+
+        <div class="scope">
+            <div class="grid-overlay"></div>
+            <div class="label-tag tag-green">2. Tx: Modulated Carrier (ASK)</div>
+            <canvas id="c2"></canvas>
+        </div>
+
+        <div class="scope">
+            <div class="grid-overlay"></div>
+            <div class="label-tag tag-red">3. Channel: The "Air" (Signal + Noise)</div>
+            <canvas id="c3"></canvas>
+        </div>
+
+        <div class="scope">
+            <div class="grid-overlay"></div>
+            <div class="label-tag tag-yellow">4. Rx: Envelope Detector (Rectified + Filter)</div>
+            <canvas id="c4"></canvas>
+        </div>
+
+        <div class="scope">
+            <div class="grid-overlay"></div>
+            <div class="label-tag tag-green">5. Rx: Comparator Output (Reconstructed Bits)</div>
+            <canvas id="c5"></canvas>
+        </div>
+    </div>
+
+    <div class="output-box">
+        <label style="display:block; margin-bottom:10px; color:#888; font-size:0.8rem;">DECODED OUTPUT (REAL-TIME)</label>
+        <div class="decoded-text" id="outputText">WAITING...</div>
+        <div class="note">The text above is reconstructed purely from the jagged waveform in Scope #5.</div>
+    </div>
+
+<script>
+    /**
+     * SIMULATION CONFIGURATION
+     * ------------------------
+     * samplesPerBit: How many audio samples represent a single '1' or '0'.
+     * carrierFreq: The frequency of the sine wave (cycles per sample).
+     * threshold: The voltage level the receiver uses to decide if a signal is '1' or '0'.
+     */
+    const CONFIG = {
+        samplesPerBit: 40,
+        carrierFreq: 0.25,
+        scrollSpeed: 2,
+        threshold: 0.35,
+    };
+
+    /**
+     * GLOBAL STATE
+     */
+    const state = {
+        binaryStream: [],       // The ideal binary sequence (0s and 1s)
+        modulatedSignal: [],    // The ideal sine wave
+        noisySignal: [],        // Signal + Noise
+        envelopeSignal: [],     // Demodulated analog voltage
+        reconstructedBits: [],  // Final 0s and 1s from receiver
+        decodedString: "",      // Final text
+        isTransmitting: false,
+        animOffset: 0
+    };
+
+    // DOM References
+    const inputs = {
+        text: document.getElementById('inputMsg'),
+        btn: document.getElementById('btnTransmit'),
+        noise: document.getElementById('noiseSlider'),
+        out: document.getElementById('outputText')
+    };
+
+    const canvases = [
+        document.getElementById('c1'), // Binary
+        document.getElementById('c2'), // Modulated
+        document.getElementById('c3'), // Noisy
+        document.getElementById('c4'), // Envelope
+        document.getElementById('c5')  // Reconstructed
+    ];
+    const ctxs = canvases.map(c => c.getContext('2d'));
+
+    // Handle Window Resize
+    function resize() {
+        canvases.forEach(c => {
+            c.width = c.parentElement.clientWidth;
+            c.height = c.parentElement.clientHeight;
+        });
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    /**
+     * STEP 1: ENCODING (Text -> Binary)
+     * Adds padding for visual clarity on the scope.
+     */
+    function stringToBinary(str) {
+        let bits = [];
+        // Lead-in padding (Silence)
+        bits.push(0, 0, 0, 0); 
+        for (let i = 0; i < str.length; i++) {
+            let code = str.charCodeAt(i);
+            // Extract 8 bits from the character code
+            for (let j = 7; j >= 0; j--) {
+                bits.push((code >> j) & 1);
+            }
+        }
+        // Lead-out padding
+        bits.push(0, 0, 0, 0);
+        return bits;
+    }
+
+    /**
+     * DECODING (Binary -> Text)
+     * This function represents the final step of the receiver.
+     * It relies ONLY on the bits recovered from the noisy waveform.
+     */
+    function binaryToString(bits) {
+        let str = "";
+        // We know we added 4 bits of padding, so we skip them.
+        let dataBits = bits.slice(4, bits.length - 4);
+        
+        for (let i = 0; i < dataBits.length; i += 8) {
+            if (i + 8 > dataBits.length) break;
+            
+            let charCode = 0;
+            // Reassemble the byte
+            for (let j = 0; j < 8; j++) {
+                charCode = (charCode << 1) | dataBits[i + j];
+            }
+            
+            // Filter: Only print valid ASCII to prevent rendering glitches
+            if (charCode >= 32 && charCode <= 126) {
+                str += String.fromCharCode(charCode);
+            } else {
+                str += "░"; // Error character
+            }
+        }
+        return str;
+    }
+
+    /**
+     * PHYSICS ENGINE
+     * Runs every frame to recalculate the signal chain based on current noise level.
+     */
+    function updatePhysics() {
+        if (state.binaryStream.length === 0) return;
+
+        const noiseLevel = parseFloat(inputs.noise.value);
+
+        state.noisySignal = [];
+        state.envelopeSignal = [];
+        state.reconstructedBits = [];
+
+        // --- STEP 3: THE "AIR" (Noise Injection) ---
+        // We recalculate this every frame so the noise "shimmers" like real static.
+        for (let i = 0; i < state.modulatedSignal.length; i++) {
+            const clean = state.modulatedSignal[i];
+            // Random noise between -1 and 1, scaled by slider
+            const noise = (Math.random() - 0.5) * noiseLevel * 2; 
+            state.noisySignal.push(clean + noise);
+        }
+
+        // --- STEP 4: THE RECEIVER (Demodulation) ---
+        // Mimics a hardware Envelope Detector:
+        // 1. Rectify (Absolute Value)
+        // 2. Low Pass Filter (Moving Average)
+        
+        let sum = 0;
+        let window = Math.floor(CONFIG.samplesPerBit / 2); // Capacitor discharge time simulation
+        let history = [];
+
+        for (let i = 0; i < state.noisySignal.length; i++) {
+            let val = Math.abs(state.noisySignal[i]);
+            
+            // Simple Moving Average Logic
+            history.push(val);
+            sum += val;
+            if (history.length > window) {
+                sum -= history.shift();
+            }
+            
+            // The "Envelope" is the average energy level
+            state.envelopeSignal.push(sum / history.length);
+        }
+
+        // --- STEP 5: THE COMPARATOR (Decision Logic) ---
+        // If the envelope voltage > threshold, output 1, else 0.
+        
+        // 1. Generate visual square wave for Scope #5
+        let visualBits = [];
+        for (let val of state.envelopeSignal) {
+            visualBits.push(val > CONFIG.threshold ? 1 : 0);
+        }
+
+        // 2. Sampling: Extract bits for the Text Decoder
+        // We sample exactly in the middle of each bit period.
+        let recoveredBits = [];
+        for (let i = 0; i < state.binaryStream.length; i++) {
+            // Calculate center sample index for this bit
+            let centerSample = (i * CONFIG.samplesPerBit) + (CONFIG.samplesPerBit / 2);
+            centerSample = Math.floor(centerSample);
+            
+            if (centerSample < state.envelopeSignal.length) {
+                // THE CRITICAL MOMENT:
+                // We decide the bit value based purely on the noisy envelope voltage.
+                let bit = state.envelopeSignal[centerSample] > CONFIG.threshold ? 1 : 0;
+                recoveredBits.push(bit);
+            }
+        }
+        
+        state.reconstructedBits = visualBits; // For visualization
+        state.decodedString = binaryToString(recoveredBits); // For text output
+        
+        inputs.out.textContent = state.decodedString;
+        
+        // Color code output based on integrity
+        if (state.decodedString !== inputs.text.value.toUpperCase()) {
+            inputs.out.style.color = '#ff3333';
+        } else {
+            inputs.out.style.color = '#00ff41';
+        }
+    }
+
+    /**
+     * INITIALIZE TRANSMISSION
+     */
+    function startTx() {
+        const text = inputs.text.value.toUpperCase() || "TEST";
+        
+        // Step 1: Text -> Binary
+        state.binaryStream = stringToBinary(text);
+
+        // Step 2: Modulate (Generate Clean Carrier)
+        // Math: y(t) = Amplitude * sin(2 * pi * f * t)
+        state.modulatedSignal = [];
+        
+        state.binaryStream.forEach(bit => {
+            for (let j = 0; j < CONFIG.samplesPerBit; j++) {
+                // Continuous phase: use total length as time 't'
+                let t = state.modulatedSignal.length; 
+                
+                if (bit === 1) {
+                    // Amplitude 1.0
+                    state.modulatedSignal.push(Math.sin(2 * Math.PI * CONFIG.carrierFreq * t));
+                } else {
+                    // Amplitude 0.0
+                    state.modulatedSignal.push(0);
+                }
+            }
+        });
+
+        state.isTransmitting = true;
+        state.animOffset = 0;
+    }
+
+    /**
+     * VISUALIZATION LOOP
+     */
+    function draw() {
+        requestAnimationFrame(draw);
+
+        if (!state.isTransmitting) return;
+
+        // Recalculate physics (noise & demodulation) every frame
+        updatePhysics();
+
+        // Scroll the oscilloscope
+        state.animOffset += CONFIG.scrollSpeed;
+        
+        // Loop the animation when it reaches the end
+        const totalLen = state.modulatedSignal.length;
+        if (state.animOffset > totalLen + canvases[0].width) {
+            state.animOffset = -canvases[0].width; 
+        }
+
+        // Draw all 5 scopes
+        // 1. Binary Input
+        drawDigital(ctxs[0], state.binaryStream, '#00ff41');
+        
+        // 2. Modulated
+        drawAnalog(ctxs[1], state.modulatedSignal, '#00ff41');
+
+        // 3. Noisy
+        drawAnalog(ctxs[2], state.noisySignal, '#ff3333');
+
+        // 4. Envelope (with threshold line)
+        drawAnalog(ctxs[3], state.envelopeSignal, '#ffea00', true); 
+
+        // 5. Reconstructed Binary
+        drawDigitalSamples(ctxs[4], state.reconstructedBits, '#00ff41');
+    }
+
+    // --- Drawing Helper Functions ---
+
+    // Draw Grid
+    function drawGrid(ctx) {
+        const w = ctx.canvas.width;
+        const h = ctx.canvas.height;
+        ctx.clearRect(0,0,w,h);
+        
+        ctx.strokeStyle = '#222';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        // Horizontal centerline
+        ctx.moveTo(0, h/2); ctx.lineTo(w, h/2);
+        ctx.stroke();
+    }
+
+    // Draw Bit Array (Logic High/Low)
+    function drawDigital(ctx, bits, color) {
+        drawGrid(ctx);
+        const h = ctx.canvas.height;
+        const w = ctx.canvas.width;
+        
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        let prevY = -1;
+
+        for (let x = 0; x < w; x++) {
+            // Calculate which sample we are at
+            let sampleIdx = Math.floor(x + state.animOffset);
+            // Convert sample index to bit index
+            let bitIdx = Math.floor(sampleIdx / CONFIG.samplesPerBit);
+
+            if (bitIdx >= 0 && bitIdx < bits.length) {
+                let bit = bits[bitIdx];
+                // Map 1 to top (20%), 0 to bottom (80%)
+                let y = bit ? h*0.2 : h*0.8;
+                
+                if (prevY === -1) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+                prevY = y;
+            }
+        }
+        ctx.stroke();
+    }
+
+    // Draw Analog Array (Waveform)
+    function drawAnalog(ctx, data, color, showThreshold = false) {
+        drawGrid(ctx);
+        const h = ctx.canvas.height;
+        const w = ctx.canvas.width;
+        
+        ctx.strokeStyle = color;
+        ctx.setLineDash([]);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+
+        for (let x = 0; x < w; x++) {
+            let idx = Math.floor(x + state.animOffset);
+            
+            if (idx >= 0 && idx < data.length) {
+                let val = data[idx];
+                
+                // Clamp values to keep them inside canvas
+                if (val > 1.5) val = 1.5;
+                if (val < -1.5) val = -1.5;
+
+                let y;
+                if (showThreshold) {
+                    // Unipolar mapping (0 to 1) for Envelope
+                    // 0 is near bottom, 1 is near top
+                    y = h - 10 - (val * (h - 20));
+                } else {
+                    // Bipolar mapping (-1 to 1) for RF Signals
+                    y = (h / 2) - (val * (h / 2.5));
+                }
+
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+        }
+        ctx.stroke();
+
+        // Draw Threshold Line overlay for Scope #4
+        if (showThreshold) {
+            ctx.strokeStyle = '#fff';
+            ctx.setLineDash([4, 4]);
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            let threshY = h - 10 - (CONFIG.threshold * (h - 20));
+            ctx.moveTo(0, threshY);
+            ctx.lineTo(w, threshY);
+            ctx.stroke();
+        }
+    }
+
+    // Draw Sample Array (0s and 1s but at sample rate)
+    function drawDigitalSamples(ctx, data, color) {
+        drawGrid(ctx);
+        const h = ctx.canvas.height;
+        const w = ctx.canvas.width;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        for (let x = 0; x < w; x++) {
+            let idx = Math.floor(x + state.animOffset);
+            if (idx >= 0 && idx < data.length) {
+                let val = data[idx];
+                let y = val ? h*0.2 : h*0.8;
+                if (x===0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+        }
+        ctx.stroke();
+    }
+
+    // Initialize
+    inputs.btn.addEventListener('click', startTx);
+    inputs.text.addEventListener('input', () => { inputs.text.value = inputs.text.value.toUpperCase(); });
+    
+    // Start loop
+    startTx();
+    draw();
+
+</script>
+</body>
+</html>
