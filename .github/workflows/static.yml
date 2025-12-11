@@ -25,7 +25,7 @@ jobs:
   # Single deploy job since we're just deploying
   deploy:
     environment:
-      name: Deploy to ${{ steps.deployment.outputs.page_url }}
+      name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
@@ -531,11 +531,16 @@ jobs:
           cd ..
       - name: Setup Pages
         uses: actions/configure-pages@v5
+      - name: Verify index puke-out properly
+        run: |
+          (test -f ./index.html) || (echo "❌ (err $?) index.html missing! (*/ω＼*)" && exit 1)
+          echo "All critical files present ƪ(˘⌣˘)ʃ"
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
+          # Keep decremental builds for 7 days
           path: '.'
+          retention-days: 7
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
