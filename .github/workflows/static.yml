@@ -1,5 +1,5 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+# There is no way this could work, right ?
+name: ${{ steps.deployment.outputs.page_url }}
 
 on:
   # Runs on pushes targeting the default branch
